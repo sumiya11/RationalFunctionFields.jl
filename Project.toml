@@ -1,0 +1,6 @@
+name = "RationalFunctionFields"
+authors = ["sumiya11"]
+version = "0.1.0"
+
+[deps]
+RandomExtensions = "fb686558-2515-59ef-acaa-46db3789a887"
