@@ -1,44 +1,84 @@
 
-"""
-    parent_ring_change(poly, new_ring)
-Converts a polynomial to a different polynomial ring
-Input
-  - poly - a polynomial to be converted
-  - new_ring - a polynomial ring such that every variable name
-      appearing in poly appears among the generators
-Output: a polynomial in new_ring "equal" to poly
-"""
-function parent_ring_change(poly, new_ring)
-    old_ring = parent(poly)
-    # construct a mapping for the variable indices
-    var_mapping = Array{Any, 1}()
-    for u in symbols(old_ring)
-        push!(
-            var_mapping,
-            findfirst(v -> (string(u) == string(v)), symbols(new_ring))
-        )
-    end
-    builder = MPolyBuildCtx(new_ring)
-    for term in zip(exponent_vectors(poly), coeffs(poly))
-        exp, coef = term
-        new_exp = [0 for _ in gens(new_ring)]
-        for i in 1:length(exp)
-            if exp[i] != 0
-                if var_mapping[i] == nothing
-                    throw(Base.ArgumentError("The polynomial contains a variable not present in the new ring $poly"))
-                else
-                    new_exp[var_mapping[i]] = exp[i]
-                end
-            end
-        end
-        push_term!(builder, new_ring.base_ring(coef), new_exp)
-    end
-    return finish(builder)
+
+import AbstractAlgebra
+import Singular
+
+import Singular.libSingular
+import Singular: spoly, n_Q
+import AbstractAlgebra: coeffs, change_base_ring, gens, base_ring, map_coefficients
+import AbstractAlgebra.Generic
+import AbstractAlgebra.Generic: Frac, MPoly
+import Nemo
+
+
+function unknown2known(u)
+    libSingular.julia(libSingular.cast_number_to_void(u.ptr))    
 end
 
-function parent_ring_change(f::Generic.Frac, new_ring)
-    n, d = unpack_fraction(f)
-    return parent_ring_change(n, new_ring) // parent_ring_change(d, new_ring)
+function singular2aa(poly::Singular.spoly{T}; base=false, new_ring=false) where {T}
+    nvariables = length(gens(parent(poly)))
+    xstrings = ["x$i" for i in 1:nvariables]
+    if base == false
+        base = base_ring(poly)
+    end
+    if new_ring == false
+        new_ring, = AbstractAlgebra.PolynomialRing(base, xstrings)
+    end
+    change_base_ring(base, poly, parent=new_ring)
 end
+
+function deux_singular2aa(poly::spoly{Singular.n_unknown{spoly{T}}}; base=false, new_ring=false) where {T}
+    outer_change = singular2aa(poly)
+
+    basebase = base_ring(parent(unknown2known(collect(coeffs(poly))[1])))
+
+    nvariables = length(gens(parent(outer_change)))
+    ystrings = ["y$i" for i in 1:nvariables]
+    new_ring, = AbstractAlgebra.PolynomialRing(basebase, ystrings)
+
+    inner_change = map_coefficients(
+                      c -> singular2aa(unknown2known(c), base=basebase, new_ring=base),
+                      outer_change)
+    inner_change
+end
+
+
+function aa2singular(poly::MPoly{T}; base=false, new_ring=false) where {T}
+    nvariables = length(gens(parent(poly)))
+    xstrings = ["x$i" for i in 1:nvariables]
+    if base == false
+        base = base_ring(poly)
+    end
+    if new_ring == false
+        new_ring, = Singular.PolynomialRing(base, xstrings)
+    end
+    change_base_ring(base, poly, parent=new_ring)    
+end
+
+function deux_aa2singular(poly::MPoly{T}; base=false, new_ring=false) where {T}
+    nvariables = length(gens(parent(poly)))
+    ystrings = ["y$i" for i in 1:nvariables]
+    xstrings = ["x$i" for i in 1:nvariables]
+    basebase = base_ring(base_ring(parent(poly)))
+    if base == false
+        base, = Singular.PolynomialRing(basebase, xstrings)
+    end
+    if new_ring == false
+        new_ring, = Singular.PolynomialRing(base, ystrings)
+    end
+    change_base_ring(base_ring(new_ring), poly, parent=new_ring)
+end
+
+function Nemo.degree(f::AbstractAlgebra.Generic.Frac{T}) where {T}
+    return max(degree(denominator(f)), degree(numerator(f)))
+end
+
+function iota(n)
+    return [i for i in 1:n]
+end
+
+###############################################################################
+
+
 
 

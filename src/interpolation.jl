@@ -3,6 +3,9 @@ using AbstractAlgebra
 
 include("utils.jl")
 
+GROUND = GF(2^31 - 1)
+
+
 function lagrange_interpolant(R, xs, i)
     n = length(xs)
     x = gen(R)
@@ -15,7 +18,7 @@ function lagrange_interpolant(R, xs, i)
         j == i ? 1 : (xs[i] - xs[j])
         for j in 1:n
     )
-
+    
     map_coefficients(t -> t // c, f)
 end
 
@@ -77,45 +80,134 @@ function interpolate_rational_function(R, xs, ys)
     polynomial_reconstruction(g, m)
 end
 
+
 function kronecker_substitution(f)
     r, t = numerator(f), denominator(f)
-
+   
 
 end
 
 
-R, (x1, x2) = PolynomialRing(QQ, ["x1", "x2"])
-FF = FractionField(R)
-RR, (y1, y2) = PolynomialRing(FF, ["y1", "y2"])
+function interpolate_multivariate_rational_function(MR, R, xs, ys, termdeg)
+   
+    f = interpolate_rational_function(R, xs, ys)
+    
+    vars = collect(gens(MR))
 
-# elem
-g = ((x1^2 + x2)//(x2+2))*y1 + (x1//x2^2)*y2
+#    for t in terms(f)
+        
+ #   end
 
-
-# move x2
-
-points = [
-    [1, 1],
-    [2, 1],
-    [3, 1],
-]
-
-points = [
-    [1, i]
-    for i in 1:5
-]
-
-# evaluate at different x2
-gs = []
-for point in points
-    gi = map_coefficients(
-        t -> evaluate(t, point),
-        g)
-    push!(gs, gi)
+    println(f)
+    
+    f   
 end
 
-UNI, u = PolynomialRing(QQ, "u")
+function decompose_by_degrees(n, base, len)
+    powers = [base^(i-1) for i in 1:len]
+    exps = zeros(Int, len)
+    for i in 1:len
+        exps[len - i + 1] = div(n, powers[len - i + 1])
+        n = n - exps[len - i + 1] * powers[len - i + 1]
+    end
+    exps
+end
 
-# interpolate
-ys = [ coeff(g, 2) for g in gs ]
-f = interpolate_rational_function(UNI, [i for i in 1:5], ys)
+function random_linear_shift(n)
+    functors = []
+    inverses = []
+    
+    for i in 1:n
+        a, b = GROUND(rand(1:100)), GROUND(rand(1:100))
+        f  = ( x -> x + b ) 
+        fi = ( x -> x - b )
+        
+        push!(functors, f)
+        push!(inverses, fi)
+    end
+    
+    return functors, inverses
+end
+
+#=
+R, (x1, x2, x3) = PolynomialRing(GROUND, ["x1", "x2", "x3"])
+
+# f = (x1^2*x2^2 + x1*x2 + x1) // (x1 + 1234*x2 + 1)
+f = (x1^2*x2 + x3) // (x2^2 + x3^2)
+
+npoints = 150
+ndeg = 3
+nvs = length(gens(R))
+
+points = [ [ BigInt(j)^i for i in [ (ndeg+1)^k for k in 1:nvs ] ] for j in 1:npoints ]
+
+xs = []
+ys = []
+
+shifts, inverses = random_linear_shift(length(points[1]))
+fp = [ fj(pj) for (fj, pj) in zip(shifts, gens(R)) ]
+g = evaluate(numerator(f), fp) // evaluate(denominator(f), fp)
+
+# println(f, " --> ")
+# println(g)
+
+for i in 1:npoints
+    p = points[i]
+    
+    push!(xs, p[1])
+    push!(ys,
+       evaluate(numerator(g), p) // evaluate(denominator(g), p)
+    )
+end
+
+uniring, x = PolynomialRing(GROUND, "x")
+
+# println(xs, "\n", ys, "\n-----")
+
+inter = interpolate_multivariate_rational_function(R, uniring, xs, ys, 3)
+
+# println("interpolated = ", inter)
+
+
+lol = [R(0), R(0)]
+for (i, D) in [ [1, numerator(inter)], [2, denominator(inter)] ]
+    polybuilder = MPolyBuildCtx(R)
+    for (e, c) in zip(0:degree(D), coefficients(D))
+        if c == 0
+            continue
+        end
+        push_term!(polybuilder, c, decompose_by_degrees(e, ndeg+1, nvs))
+    end
+    lol[i] = finish(polybuilder)
+end
+
+F = lol[1] // lol[2]
+
+# println("back kronecker F = ", F)
+
+shiftedvariables = [ fj(pj) for (fj, pj) in zip(inverses, gens(R)) ]
+
+F = evaluate(numerator(F), shiftedvariables) // evaluate(denominator(F), shiftedvariables)
+
+F = leading_coefficient(numerator(F)) *inv(leading_coefficient(denominator(F))) * (numerator(F) * inv(leading_coefficient(numerator(F)))) // (denominator(F) * inv(leading_coefficient(denominator(F))))
+
+# println("back linear F = ", F)
+
+
+
+
+=#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
