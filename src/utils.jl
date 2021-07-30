@@ -27,7 +27,7 @@ function singular2aa(poly::Singular.spoly{T}; base=false, new_ring=false) where 
     change_base_ring(base, poly, parent=new_ring)
 end
 
-function deux_singular2aa(poly::spoly{Singular.n_unknown{spoly{T}}}; base=false, new_ring=false) where {T}
+function double_singular2aa(poly::spoly{Singular.n_unknown{spoly{T}}}; base=false, new_ring=false) where {T}
     outer_change = singular2aa(poly)
 
     basebase = base_ring(parent(unknown2known(collect(coeffs(poly))[1])))
@@ -55,7 +55,7 @@ function aa2singular(poly::MPoly{T}; base=false, new_ring=false) where {T}
     change_base_ring(base, poly, parent=new_ring)    
 end
 
-function deux_aa2singular(poly::MPoly{T}; base=false, new_ring=false) where {T}
+function double_aa2singular(poly::MPoly{T}; base=false, new_ring=false) where {T}
     nvariables = length(gens(parent(poly)))
     ystrings = ["y$i" for i in 1:nvariables]
     xstrings = ["x$i" for i in 1:nvariables]
