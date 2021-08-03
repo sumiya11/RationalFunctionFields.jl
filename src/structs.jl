@@ -1,10 +1,4 @@
 
-include("main.jl")
-
-
-###############################################################################
-
-
 mutable struct RationalFunctionField
     generating_set     # present always
     groebner_coeffs    # lazy field, not to be addressed directly

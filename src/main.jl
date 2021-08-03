@@ -1,19 +1,8 @@
-
-include("interpolation.jl")
-include("utils.jl")
-include("parse.jl")
-
-
-import Singular: std, Ideal
-import AbstractAlgebra
-import Nemo
-using DataStructures
-
-import Singular: libSingular
-
-
 function exponents_new_generating_set(genset)
 
+
+    # Tretiy raz brosil starik nevod
+    # Vitashil bagov mnogo
 
     basepolyring = parent(numerator( first(genset) ))
     nvariables = length(gens(basepolyring))
@@ -44,6 +33,8 @@ function exponents_new_generating_set(genset)
     # substitute + groebner n times
 
     ybasering,  = AbstractAlgebra.PolynomialRing(ground, ystrings)
+
+    # TODO: restructure so that interpolation is attampted after each GB computation
     n = 20
 
     # @info "" I
@@ -55,9 +46,11 @@ function exponents_new_generating_set(genset)
         gbs = []
 
         # generating interpolation points while fixing all variables but var
+
+        # TODO: take other points random
         points = [
             [ ground(i) for i in 1:nvariables ]
-            for i in 1:n
+            for _ in 1:n
         ]
         for i in 1:length(points)
             points[i][varidx] = ground(i)
@@ -65,6 +58,7 @@ function exponents_new_generating_set(genset)
         
         lightring, = Singular.PolynomialRing(tosingular(ground), ystrings)
 
+        # TODO: separate function evaluate_gb_at_point or so
         for point in points
             # @info "point $point"
 
@@ -131,6 +125,9 @@ function exponents_new_generating_set(genset)
     return ans
 end
 
+# TODO: 
+#  - merge the functions into one (parent_ring_change or so)
+#  - move to utils
 
 function add_one_variable(polys)
     R = parent(polys[1])
@@ -154,7 +151,7 @@ function add_one_variable(polys)
     return newpolys, t
 end
 
-function erase_one_variable(newring, polys)
+function erase_last_variable(newring, polys)
     # assuming polys are indepent of last variable
 
     R = parent(polys[1])
@@ -207,6 +204,7 @@ function naive_new_generating_set(genset)
         >
     =#
 
+    # TODO: put generators -> polynomials conversion into a separate function and reuse below
     ystrings = ["y$i" for i in 1:nvariables]
     yoverx, yoverxvars = AbstractAlgebra.PolynomialRing(basepolyring, ystrings)
 
@@ -254,7 +252,7 @@ function naive_new_generating_set(genset)
         end
     end
 
-    gb = erase_one_variable(yoverx, gb_no_t)
+    gb = erase_last_variable(yoverx, gb_no_t)
     
     generators = []
     for poly in gb
@@ -415,6 +413,8 @@ function new_generating_set(genset)
             .
     =#
 
+    # Constructing polynomial system from the generating set
+
     basepolyring = parent(numerator( first(genset) ))
     nvariables = length(gens(basepolyring))
     
@@ -442,24 +442,27 @@ function new_generating_set(genset)
     ]
 
     I, t = add_one_variable(I)
-    sat = 1 - Q*t
+    push!(I, 1 - Q * t)
 
-    I = [I..., sat]
+    # Building a Kronecker substitution
 
     exponents = display_generating_exponents(genset)
     maxexp = maximum([maximum(values(s)) for s in exponents])
+    @info "Maximal exponents per variables: $exponents"
+    @info "The largest: $maxexp"
+
+    npoints = (maxexp + 1)^nvariables + 2
+    xs = collect(1:npoints)
+    points = [ [ BigInt(j)^i for i in [ (maxexp + 1)^k for k in 0:(nvariables - 1) ] ] for j in xs ]
+    @info "The total number of sampling points: $npoints"
+    flush(stdout)
+    
+
+    # Evaluating Groebner bases of specializations
+
+    lightring, = Singular.PolynomialRing(tosingular(ground), [ystrings..., "t"])
 
     gbs = []
-
-    npoints = nvariables^(maxexp+1) + 2
-
-
-    ndeg = maxexp
-    nvs = length(gens(basepolyring))
-    points = [ [ BigInt(j)^i for i in [ (ndeg+1)^k for k in 1:nvs ] ] for j in 1:npoints ]
-    
-    
-    lightring, = Singular.PolynomialRing(tosingular(ground), [ystrings..., "t"])
 
     for point in points
         Is = [
@@ -491,32 +494,22 @@ function new_generating_set(genset)
 
     gbs_no_t = []
     for gb in gbs
-        gb_no_t = []
-        for f in gb
-            if degree(f, t) == 0
-                push!(gb_no_t, f)
-            end
-        end
-        push!(gbs_no_t, gb_no_t)
+        push!(gbs_no_t, filter(f -> degree(f, t) == 0, gb))
     end
     gbs = gbs_no_t
 
+    # remove?
     gbs = [
-            erase_one_variable(basepolyring, gb)
+            erase_last_variable(basepolyring, gb)
             for gb in gbs
           ]
 
-    ints = []
+    # Performing univariate interpolation
 
     uni, = AbstractAlgebra.PolynomialRing(ground, "x")
 
-    xs = []
     ys = []
-
     for i in 1:npoints
-        p = points[i]
-
-        push!(xs, p[1])
         push!(ys, [Dict() for _ in 1:length(gbs[i])])
 
         for (j, gg) in enumerate(gbs[i])
@@ -542,11 +535,12 @@ function new_generating_set(genset)
                     basepolyring,
                     uni,
                     xs,
-                    yssmall,
-                    8)
+                    yssmall
+            )
             # TODO ??? or not to do: handle exponents better ? 
             
 
+            # TODO: separate function, e.g, backward_kronecker
             R = basepolyring
             lol = [R(0), R(0)]
             for (i, D) in [ [1, numerator(f)], [2, denominator(f)] ]
@@ -555,7 +549,7 @@ function new_generating_set(genset)
                     if iszero(c)
                         continue
                     end
-                    push_term!(polybuilder, c, decompose_by_degrees(e, ndeg+1, nvs))
+                    push_term!(polybuilder, c, decompose_by_degrees(e, maxexp + 1, nvariables))
                 end
                 lol[i] = finish(polybuilder)
             end
@@ -565,6 +559,8 @@ function new_generating_set(genset)
 
         end
     end
+
+    # Reconstruct the final Groebner basis and new generators
 
     gb = []
     R, = AbstractAlgebra.PolynomialRing(FractionField(basepolyring), ystrings)
@@ -585,18 +581,3 @@ function new_generating_set(genset)
 
     return gb, generators
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

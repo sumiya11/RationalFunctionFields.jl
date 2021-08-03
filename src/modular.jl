@@ -1,9 +1,3 @@
-
-
-
-
-
-
 # rational number reconstruction implementation borrowed from CLUE
 # and modified a bit to suit the 'Modern Computer Algebra' definitions
 # returns a rational r // h of QQ field in a canonical form such that
@@ -76,11 +70,4 @@ end
 function modular_reduction(x::gfp_elem, field)
     return field(x)
 end
-
-
-
-
-
-
-
 

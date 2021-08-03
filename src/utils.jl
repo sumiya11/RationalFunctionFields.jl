@@ -1,16 +1,3 @@
-
-
-import AbstractAlgebra
-import Singular
-
-import Singular.libSingular
-import Singular: spoly, n_Q
-import AbstractAlgebra: coeffs, change_base_ring, gens, base_ring, map_coefficients
-import AbstractAlgebra.Generic
-import AbstractAlgebra.Generic: Frac, MPoly
-import Nemo
-
-
 function unknown2known(u)
     libSingular.julia(libSingular.cast_number_to_void(u.ptr))    
 end

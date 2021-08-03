@@ -1,9 +1,3 @@
-
-
-include("myeval.jl")
-
-import AbstractAlgebra
-
 function load_generators(filepath)
     lines = []
     open(filepath, "r") do inputs
@@ -33,12 +27,3 @@ function load_generators(filepath)
     
     return generators
 end
-
-
-
-# generators = load_generators("../data/Simple.txt")
-# println(generators)
-
-
-
-

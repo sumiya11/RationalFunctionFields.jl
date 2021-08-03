@@ -1,10 +1,16 @@
+include("../src/RationalFunctionFields.jl")
 
-include("../src/structs.jl")
+using AbstractAlgebra
+using Logging
+using Singular
 
+using .RationalFunctionFields: simplify_generators!, compute_groebner!, RationalFunctionField
+
+logger = SimpleLogger(stdout, Logging.Debug)
 
 # create polyring and a generators set
 R, (a, b) = AbstractAlgebra.PolynomialRing(Singular.QQ, ["a", "b"])
-set = [ (a + b) // 1, b // 1 ]
+set = [ (a^2 + b^2) // 1, (a^3 + b^3) // 1, (a^4 + b^4) // 1 ]
 
 # initialize RationalFunctionField and compute relative groebner basis
 FF = RationalFunctionField(set)

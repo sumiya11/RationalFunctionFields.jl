@@ -4,11 +4,6 @@
 # Adapted from https://github.com/x3042/Exact-reduction-of-ODE-systems/blob/main/src/myeval.jl
 # by Alexander D. , Higher School of Economics
 
-
-import AbstractAlgebra.Generic: MPoly
-import AbstractAlgebra.Generic
-import AbstractAlgebra: QQ
-
 function myeval(e::Union{Expr,Symbol,Number}, map::Dict{Symbol,MPoly})
     try
         return _myeval(e, map)
