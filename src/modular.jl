@@ -58,7 +58,7 @@ end
 
 #------------------------------------------------------------------------------
 
-function modular_reduction(x::FracElem, field)
+function modular_reduction(x, field)
     n, d = field(numerator(x)), field(denominator(x))
     if iszero(d)
         throw(DomainError(
@@ -67,6 +67,7 @@ function modular_reduction(x::FracElem, field)
     end
     n // d
 end
+
 
 function modular_reduction(x::gfp_fmpz_elem, field)
     return field(convert(BigInt, x))

@@ -62,8 +62,34 @@ function contains_using_groebner(FF::RationalFunctionField, elem)
 end
 
 
-function compute_groebner_set!(FF::RationalFunctionField)
-    FF.groebner_ideal, FF.groebner_coeffs = new_generating_set(FF.generating_set)
+function compute_groebner!(
+                               FF::RationalFunctionField;
+                               backend_algorithm=new_generating_set)
+    
+    FF.groebner_ideal, FF.groebner_coeffs = backend_algorithm(FF.generating_set)
+end
+
+
+function simple_preprocess(FF::RationalFunctionField)
+    generators = FF.groebner_coeffs
+    tmp = copy(generators)
+    tmp = filter((c) -> !isconstant(c), tmp)
+    sort!(tmp, by=(c) -> sum(degrees(c)), rev=true)
+    ans = [ first(tmp) ]
+    for elem in tmp
+        field = RationalFunctionField(ans)
+        compute_groebner!(field)
+        if !contains(field, elem)
+            push!(ans, elem)
+        end
+    end
+    ans
+end
+
+function simplify_generators!(
+                              FF::RationalFunctionField;
+                              backend_algorithm=simple_preprocess)
+    FF.groebner_coeffs = backend_algorithm(FF)
 end
 
 
@@ -77,26 +103,6 @@ end
 
 
 ###############################################################################
-
-R, (a, b) = AbstractAlgebra.PolynomialRing(GROUND, ["a", "b"])
-
-Q = FractionField(R)
-
-set = [ a^2 // 1,  (a + b) // 1 ]
-
-FF = RationalFunctionField(set)
-
-compute_groebner_set!(FF)
-
-f = a^2 // 1
-
-println( contains(FF, f) )
-
-@assert contains(FF, (a^3 + a^2*b) // 1 )
-@assert !contains(FF,(b) // 1 )
-@assert contains(FF, (b^2 + 2*a*b) // a^2 )
-@assert contains(FF, (a+b) // a^2 )
-
 
 
 

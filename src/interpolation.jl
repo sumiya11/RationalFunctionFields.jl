@@ -96,7 +96,6 @@ function interpolate_multivariate_rational_function(MR, R, xs, ys, termdeg)
         
  #   end
 
-    println(f)
     
     f   
 end

@@ -73,6 +73,30 @@ function Nemo.degree(f::AbstractAlgebra.Generic.Frac{T}) where {T}
     return max(degree(denominator(f)), degree(numerator(f)))
 end
 
+function Nemo.isconstant(f::AbstractAlgebra.Generic.Frac{T}) where {T}
+    return isconstant(denominator(f)) && isconstant(numerator(f))
+end
+
+function Nemo.degrees(f::AbstractAlgebra.Generic.Frac{T}) where {T}
+    return degrees(denominator(f)) + degrees(numerator(f))
+end
+
+function Base.length(x::Frac{T}) where {T}
+    return max(length(numerator(x)), length(denominator(x)))
+end
+
+function tosingular(F::AbstractAlgebra.Generic.Rationals)
+    Singular.QQ
+end
+
+function tosingular(F)
+    F
+end
+
+function toaa(::Singular.Rationals)
+    AbstractAlgebra.Generic.QQ
+end
+
 function iota(n)
     return [i for i in 1:n]
 end
