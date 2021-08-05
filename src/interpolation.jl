@@ -86,13 +86,6 @@ function interpolate_multivariate_rational_function(MR, R, xs, ys)
    
     f = interpolate_rational_function(R, xs, ys)
     
-    vars = collect(gens(MR))
-
-#    for t in terms(f)
-        
- #   end
-
-    
     f   
 end
 

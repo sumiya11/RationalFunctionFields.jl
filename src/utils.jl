@@ -1,3 +1,52 @@
+
+
+function add_one_variable(poly, newparent)
+    R = parent(poly)
+    base = base_ring(R)
+
+    t = last(gens(newparent))
+
+    polybuilder = MPolyBuildCtx(newparent)
+    for (e, c) in zip(exponent_vectors(poly), coefficients(poly))
+        push_term!(polybuilder, c, [e..., 0])
+    end
+
+    return finish(polybuilder), t
+end
+
+function erase_last_variable(poly, newparent)
+    # assuming poly is indepent of last variable
+
+    R = parent(poly)
+    base = base_ring(R)
+
+    polybuilder = MPolyBuildCtx(newparent)
+    for (e, c) in zip(exponent_vectors(poly), coefficients(poly))
+        push_term!(polybuilder, c, e[1:end-1])
+    end
+
+    return finish(polybuilder)
+end
+
+# TODO : todo
+function change_parent_ring(poly, newparent)
+    original = parent(poly)
+    originalnvars = nvars(original)
+    
+    parentnvars = nvars(newparent)
+    
+    if originalnvars == parentnvars
+        
+    elseif originalnvars + 1 == parentnvars
+        return add_one_variable(poly, newparent) 
+    elseif originalnvars == parentnvars + 1
+        return erase_last_variable(poly, newparent)
+    else
+        @warn "failed to coerce polynomial $poly from $original to $parent"
+    end
+end
+
+
 function unknown2known(u)
     libSingular.julia(libSingular.cast_number_to_void(u.ptr))    
 end
