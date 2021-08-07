@@ -17,8 +17,6 @@ end
 # univariate
 # returns :: AbstractAlgebra.Generic.Poly
 function interpolate_polynomial(R, xs, ys)
-    @info xs
-    @info ys
     f = sum(
         ys[i] * lagrange_interpolant(R, xs, i)
         for i in 1:length(xs)

@@ -36,7 +36,7 @@ function change_parent_ring(poly, newparent)
     parentnvars = nvars(newparent)
     
     if originalnvars == parentnvars
-        
+                
     elseif originalnvars + 1 == parentnvars
         return add_one_variable(poly, newparent) 
     elseif originalnvars == parentnvars + 1
