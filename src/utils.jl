@@ -63,7 +63,7 @@ function singular2aa(poly::Singular.spoly{T}; base=false, new_ring=false) where 
     change_base_ring(base, poly, parent=new_ring)
 end
 
-function double_singular2aa(poly::spoly{Singular.n_unknown{spoly{T}}}; base=false, new_ring=false) where {T}
+function double_singular2aa(poly::Singular.spoly{Singular.n_unknown{Singular.spoly{T}}}; base=false, new_ring=false) where {T}
     outer_change = singular2aa(poly)
 
     basebase = base_ring(parent(unknown2known(collect(coeffs(poly))[1])))
@@ -109,6 +109,7 @@ function Nemo.degree(f::AbstractAlgebra.Generic.Frac{T}) where {T}
     return max(degree(denominator(f)), degree(numerator(f)))
 end
 
+
 function Nemo.isconstant(f::AbstractAlgebra.Generic.Frac{T}) where {T}
     return isconstant(denominator(f)) && isconstant(numerator(f))
 end
@@ -136,6 +137,11 @@ end
 function iota(n)
     return [i for i in 1:n]
 end
+
+function Base.rand(::AbstractAlgebra.Rationals{BigInt})
+    return AbstractAlgebra.QQ(rand(1:10^4), rand(1:10^4))
+end
+
 
 ###############################################################################
 

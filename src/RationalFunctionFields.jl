@@ -23,6 +23,7 @@ module RationalFunctionFields
     # include("modular.jl")
     include("utils.jl")
     include("interpolation.jl")
+    include("groebner.jl")
     include("main.jl")
     include("structs.jl")
 

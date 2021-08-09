@@ -369,12 +369,13 @@ function new_generating_set(genset)
 
     # Evaluating Groebner bases of specializations
 
-    lightring, = Singular.PolynomialRing(tosingular(ground), [ystrings..., "t"])
-
+    eval_ring, = Singular.PolynomialRing(tosingular(ground), [ystrings..., "t"])
+    G = groebner_evaluator(It, eval_ring, ground)
+    
     gbs = []
-
+    
     for point in points
-        gb = evaluate_gb_at_point(It, point, lightring, ground)
+        gb = evaluate(G, point)
         push!(gbs, collect(gens(gb)))
     end
 
@@ -481,4 +482,30 @@ function new_generating_set(genset)
 
     return gb, generators
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

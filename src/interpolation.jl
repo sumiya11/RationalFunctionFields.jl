@@ -115,6 +115,55 @@ function random_linear_shift(ground_ring, n)
 end
 
 
+"""
+    Given a callable functor f tries to find degrees of univariate polynomials
+    A, B approximating f as a rational function f = A // B
+    
+    Numeric computations are performed in the given ground field
+"""
+function predict_degrees(f, ground)
+    # staring from small amount of points..
+    n = 8
+
+    # = deg(A), deg(B) initially
+    predicted_degrees = (n, n)
+
+    polyring, = AbstractAlgebra.PolynomialRing(ground, "u")    
+    
+    # "safety condition" to assume f is interpolated correctly indeed
+    # failes on first iteration
+    while 4*(sum(predicted_degrees) + 2) > n  
+        xs = [ rand(ground) for _ in 1:n  ]
+        ys = f.(xs)
+            
+        interpolated = interpolate_rational_function(polyring, xs, ys)    
+        
+        predicted_degrees = map(degree, (numerator(interpolated), denominator(interpolated)))   
+        
+        @debug "for $n points degrees are " predicted_degrees
+
+        n = n * 2
+    end
+    
+    predicted_degrees
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

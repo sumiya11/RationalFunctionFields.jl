@@ -5,12 +5,11 @@ if !isdefined(Main, :testset)
 end
 
 include("../src/RationalFunctionFields.jl")
-using .RationalFunctionFields: interpolate_rational_function, interpolate_multivariate_rational_function, random_linear_shift, decompose_by_degrees
+using .RationalFunctionFields: interpolate_rational_function, interpolate_multivariate_rational_function, random_linear_shift, decompose_by_degrees, predict_degrees
 
 
 import Singular
 import AbstractAlgebra
-
 
 
 AA = AbstractAlgebra
@@ -130,10 +129,69 @@ end
 end
 
 
+@testset "Degree prediction tests" begin
+    
+    
+    fs0 = [
+        (x) -> 2,
+        (x) -> x,
+        (x) -> 1 // x,
+        (x) -> (x^2 + 11) // (x + 111)
+    ]
+    answers0 = [
+        (0, 0),
+        (1, 0),
+        (0, 1),
+        (2, 1)
+    ]
+        
+    fs = [
+        (x) -> (x^3 + 1),
+        (x) -> (x^16 - 23x^11 + 123),
+        (x) -> (x^2 // (x + 1)^4),
+        (x) -> ((x - 1) // (x^18 + x^17 - 123)),
+        (x) -> ((5x^113 + 2x^55 + 3x^33 + 1) // (x^11 + x + 22))
+    ]
 
 
+    answers = [ 
+        (3, 0),
+        (16, 0),
+        (2, 4),
+        (1, 18),
+        (113, 11)
+    ]
 
 
+    FF = AA.GF(2^31-1)
+
+    for (i, f) in enumerate(fs0)
+        d = predict_degrees(f, AA.QQ)
+        @test answers0[i] == d
+    end
+    
+    for (i, f) in enumerate(fs)
+        d = predict_degrees(f, FF)
+        @test answers[i] == d
+    end
+
+
+end
+
+
+#=
+
+# for future 
+
+using Logging
+
+logger = Logging.SimpleLogger(stderr, Logging.Debug)
+
+Logging.global_logger(logger)
+@debug "lol"
+
+
+=#
 
 
 
