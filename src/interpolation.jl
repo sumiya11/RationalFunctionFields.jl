@@ -1,6 +1,7 @@
+
 function lagrange_interpolant(R, xs, i)
     n = length(xs)
-    x = gen(R)
+    x = AbstractAlgebra.gen(R)
 
     f = prod(
         j == i ? 1 : (x - xs[j])
@@ -11,7 +12,7 @@ function lagrange_interpolant(R, xs, i)
         for j in 1:n
     )
     
-    map_coefficients(t -> t // c, f)
+    AbstractAlgebra.map_coefficients(t -> t // c, f)
 end
 
 # univariate
@@ -33,13 +34,13 @@ function polynomial_reconstruction(g, m)
     #   "Modern Computer Algebra", second edition,
     #   Joachim von zur Gathen, Jürgen Gerhard
 
-    n = degree(m)
+    n = AbstractAlgebra.degree(m)
     k = div(n, 2)
-    FF = parent(g)
+    FF = AbstractAlgebra.parent(g)
 
     U = (FF(1), FF(0), m)
     V = (FF(0), FF(1), g)
-    while degree(V[3]) >= k
+    while AbstractAlgebra.degree(V[3]) >= k
         q = div(U[3], V[3])
         T = U .- q .* V
         U = V
@@ -49,7 +50,7 @@ function polynomial_reconstruction(g, m)
     r, t = V[3], V[2]
 
 
-    if gcd(r, t) == FF(1) && degree(t) <= n - k
+    if gcd(r, t) == FF(1) && AbstractAlgebra.degree(t) <= n - k
         return r // t
     end
 
@@ -65,7 +66,7 @@ function interpolate_rational_function(R, xs, ys)
     #   "Modern Computer Algebra", second edition,
     #   Joachim von zur Gathen, Jürgen Gerhard
 
-    x = gen(R)
+    x = AbstractAlgebra.gen(R)
 
     g = interpolate_polynomial(R, xs, ys)
     m = prod(x - xs[i] for i in 1:length(xs))
@@ -102,7 +103,7 @@ function random_linear_shift(ground_ring, n)
     inverses = []
     
     for i in 1:n
-        a, b = ground_ring(rand(1:100)), ground_ring(rand(1:100))
+        a, b = ground_ring(rand(1:10000)), ground_ring(rand(1:10000))
         f  = ( x -> x + b ) 
         fi = ( x -> x - b )
         
