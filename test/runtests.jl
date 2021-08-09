@@ -6,13 +6,15 @@ include("../src/RationalFunctionFields.jl")
 
 using .RationalFunctionFields
 
-
+# Ask me about this
+AA = RationalFunctionFields.AbstractAlgebra
+Sing = RationalFunctionFields.Singular
 
 @info "Testing started"
 
 @testset "All the tests" begin
 
-    @includetests [:utils_tests, :interpolation_tests, :groebner_tests]
+    @includetests ARGS    
 
 end
 
