@@ -12,7 +12,8 @@ module RationalFunctionFields
     import AbstractAlgebra.Generic: Frac, MPoly
 
     import Nemo
-   
+    import Nemo: gfp_fmpz_elem, gfp_elem, fmpq_mpoly
+    
     import Singular
     import Singular: std, Ideal
     import Singular: libSingular
@@ -23,6 +24,7 @@ module RationalFunctionFields
     # include("modular.jl")
     include("utils.jl")
     include("interpolation.jl")
+    include("modular.jl")
     include("groebner.jl")
     include("main.jl")
     include("structs.jl")

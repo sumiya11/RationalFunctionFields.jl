@@ -63,7 +63,9 @@ function singular2aa(poly::Singular.spoly{T}; base=false, new_ring=false) where 
     change_base_ring(base, poly, parent=new_ring)
 end
 
-function double_singular2aa(poly::Singular.spoly{Singular.n_unknown{Singular.spoly{T}}}; base=false, new_ring=false) where {T}
+function double_singular2aa(
+           poly::Singular.spoly{Singular.n_RingElem{Singular.spoly{T}}};
+           base=false, new_ring=false) where {T}
     outer_change = singular2aa(poly)
 
     basebase = base_ring(parent(unknown2known(collect(coefficients(poly))[1])))

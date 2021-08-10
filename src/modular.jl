@@ -1,3 +1,5 @@
+
+
 # rational number reconstruction implementation borrowed from CLUE
 # and modified a bit to suit the 'Modern Computer Algebra' definitions
 # returns a rational r // h of QQ field in a canonical form such that
@@ -53,7 +55,7 @@ end
 #------------------------------------------------------------------------------
 
 function modular_reduction(x, field)
-    n, d = field(numerator(x)), field(denominator(x))
+    n, d = field(Integer(numerator(x))), field(Integer(denominator(x)))
     if iszero(d)
         throw(DomainError(
             :($x), "modular reduction of $x (to $field) does not exist"
@@ -62,6 +64,14 @@ function modular_reduction(x, field)
     n // d
 end
 
+function modular_reduction(f::Union{MPoly, fmpq_mpoly}, field)
+    map_coefficients(c -> modular_reduction(c, field), f)
+end
+
+function modular_reduction(f::Frac, field)
+    modular_reduction(numerator(f), field) //
+        modular_reduction(denominator(f), field)
+end
 
 function modular_reduction(x::gfp_fmpz_elem, field)
     return field(convert(BigInt, x))
@@ -70,4 +80,28 @@ end
 function modular_reduction(x::gfp_elem, field)
     return field(x)
 end
+
+function modular_reduction(arr::Array, field)
+    map(f -> modular_reduction(f, field), arr)
+end
+
+
+function rational_reconstruction(f::MPoly)
+    map_coefficients(c -> modular_reduction(c, field), f)
+end
+
+function rational_reconstruction(f::Frac)
+    rational_reconstruction(numerator(f)) //
+        rational_reconstruction(denominator(f))
+end
+
+
+
+
+
+
+
+
+
+
 

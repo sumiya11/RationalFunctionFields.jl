@@ -188,6 +188,38 @@ function simultaneous_predict_degrees(f)
 end
 
 
+function backward_kronecker(
+                     f::AbstractAlgebra.Generic.Poly{T},
+                     target_ring,
+                     maxexp) where {T}
+
+    polybuilder = MPolyBuildCtx(target_ring)
+    nvariables = length(gens(target_ring)) 
+    
+
+    # TODO: fix 0:degree(f)
+    for (e, c) in zip(0:degree(f), coefficients(f))
+        if iszero(c)
+            continue
+        end
+        push_term!(
+            polybuilder,
+            c,
+            decompose_by_degrees(e, maxexp + 1, nvariables)
+        )
+    end
+
+    finish(polybuilder)
+end
+
+function backward_kronecker(
+                  f::AbstractAlgebra.Generic.Frac{T},
+                  target_ring,
+                  maxexp) where {T}
+
+    backward_kronecker(numerator(f), target_ring, maxexp) //
+        backward_kronecker(denominator(f), target_ring, maxexp)
+end
 
 
 

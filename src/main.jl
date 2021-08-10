@@ -151,7 +151,11 @@ function generators_to_ideal(genset)
     Fs = map(numerator ∘ (g -> g * Q), genset)
 
     ystrings = ["y$i" for i in 1:nvariables]
-    yoverx, yoverxvars = AbstractAlgebra.PolynomialRing(basepolyring, ystrings)
+    yoverx, yoverxvars = AbstractAlgebra.PolynomialRing(
+                                                 basepolyring,
+                                                 ystrings,
+                                                 ordering=:lex
+                                                 )
 
     Fx = Fs
     Fy = map(F -> change_base_ring(basepolyring, F, parent=yoverx), Fs)
@@ -176,7 +180,7 @@ function saturate(I, Q)
     R = parent(I[1])
     base = base_ring(R)
     strings = map(String, symbols(R))
-    parentring, vs = AbstractAlgebra.PolynomialRing(base, [strings..., "t"])
+    parentring, vs = AbstractAlgebra.PolynomialRing(base, [strings..., "t"], ordering=:lex)
 
     t = last(vs)
     It = [
@@ -451,9 +455,18 @@ function new_generating_set(genset)
             .
     =#
     
+    ### Nemo, AA, Sing
+    
+    modulo = 2^31 - 1
+    FF = AbstractAlgebra.GF(modulo)
+
+    genset = modular_reduction(genset, FF)
+
     # Generating "good" ideal and saturating it
     I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(genset)
     It, t = saturate(I, Q)
+    
+    @info "" yoverx basepolyring ground 
 
     # Estimating the largest degree of a coeff in the Groebner basis 
     eval_ring, = Singular.PolynomialRing(tosingular(ground), [ystrings..., "t"])
@@ -482,16 +495,13 @@ function new_generating_set(genset)
         for point in points
     ]
     
-    extended_ring, vvs = AbstractAlgebra.PolynomialRing(ground, [ystrings..., "t"])
+    extended_ring, vvs = AbstractAlgebra.PolynomialRing(
+                                                 ground,
+                                                 [ystrings..., "t"],
+                                                 ordering=:lex
+                                         )
     t = vvs[end]
 
-    gbs = [
-        [
-           change_base_ring(ground, f, parent=extended_ring)
-           for f in gb
-        ]
-        for gb in gbs
-    ]
 
     gbs_no_t = []
     for gb in gbs
@@ -499,18 +509,10 @@ function new_generating_set(genset)
     end
     gbs = gbs_no_t
 
-    # remove?
-    # TODO: give it second thought
-    gbs = [
-            [    
-                change_parent_ring(f, basepolyring)
-                for f in gb
-            ]
-            for gb in gbs
-          ]
 
     # Performing univariate interpolation
 
+    # 
     uni, = AbstractAlgebra.PolynomialRing(ground, "x")
 
     ys = []
@@ -543,22 +545,7 @@ function new_generating_set(genset)
                     yssmall
             )
 
-            # TODO: separate function, e.g, backward_kronecker
-            R = basepolyring
-            lol = [R(0), R(0)]
-            for (i, D) in [ [1, numerator(f)], [2, denominator(f)] ]
-                polybuilder = MPolyBuildCtx(R)
-                for (e, c) in zip(0:degree(D), coefficients(D))
-                    if iszero(c)
-                        continue
-                    end
-                    push_term!(polybuilder, c, decompose_by_degrees(e, maxexp + 1, nvariables))
-                end
-                lol[i] = finish(polybuilder)
-            end
-
-            F = lol[1] // lol[2]
-            answer_e[j][ev] = F
+            answer_e[j][ev] = backward_kronecker(f, basepolyring, maxexp)
 
         end
     end
@@ -566,14 +553,35 @@ function new_generating_set(genset)
     # Reconstruct the final Groebner basis and new generators
 
     gb = []
-    R, = AbstractAlgebra.PolynomialRing(FractionField(basepolyring), ystrings)
+    R, = AbstractAlgebra.PolynomialRing(
+                                FractionField(basepolyring),
+                                ystrings,
+                                ordering=:lex
+                           )
+
     for etoc in answer_e
         polybuilder = MPolyBuildCtx(R)
         for e in keys(etoc)
-            push_term!(polybuilder, etoc[e], e)
+            push_term!(polybuilder, etoc[e], e[1:end-1])
         end
         push!(gb, finish(polybuilder))
     end
     
     return gb
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
