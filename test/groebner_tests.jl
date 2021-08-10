@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 if !isdefined(Main, :testset)
     using Test
@@ -11,6 +12,9 @@ using .RationalFunctionFields: naive_new_generating_set, field_generators,
 generate_good_ideal, GroebnerEvaluator, tosingular, discover_groebner_structure, 
 discover_groebner_degrees, saturate, new_generating_set
 
+=======
+@testset "Groebner tests" begin
+>>>>>>> 962fc5c43aaa6d5a41347856a972fb04ffbd3e3c
 
 import Singular
 import AbstractAlgebra

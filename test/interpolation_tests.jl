@@ -1,18 +1,6 @@
+using .RationalFunctionFields: interpolate_rational_function, interpolate_multivariate_rational_function, 
+                               random_linear_shift, decompose_by_degrees, predict_degrees
 
-if !isdefined(Main, :testset)
-    using Test
-    using TestSetExtensions
-end
-
-include("../src/RationalFunctionFields.jl")
-using .RationalFunctionFields: interpolate_rational_function, interpolate_multivariate_rational_function, random_linear_shift, decompose_by_degrees, predict_degrees
-
-
-import Singular
-import AbstractAlgebra
-
-
-AA = AbstractAlgebra
 
 function test_rational_function_interpolation(f)
     
@@ -68,7 +56,6 @@ end
 end
 
 ###############################################################################
-
 
 @testset "Interpolation + shift tests" begin
 
@@ -177,6 +164,43 @@ end
 
 
 end
+<<<<<<< HEAD
+=======
+
+#################################################################
+
+@testset "Interpolation tests" begin
+
+    # Why do these tests fail?
+    uniring, x = AA.PolynomialRing(AA.QQ, "x")
+    test_cases = [
+        (x + 1) // (x + 2),
+        (x^3 - 7) // (3 * x^2 + 1)
+    ]
+
+    for case in test_cases
+        numpoints = 2 * (AA.degree(numerator(case)) + AA.degree(denominator(case)))
+        xs = [rand(1:100000) for _ in 1:numpoints]
+        ys = [AA.evaluate(numerator(case), xval) // AA.evaluate(denominator(case), xval) for xval in xs]
+        ans = interpolate_rational_function(uniring, xs, ys)
+        @test ans == case
+    end
+
+end
+
+#=
+
+# for future 
+
+using Logging
+
+logger = Logging.SimpleLogger(stderr, Logging.Debug)
+
+Logging.global_logger(logger)
+@debug "lol"
+
+
+>>>>>>> 962fc5c43aaa6d5a41347856a972fb04ffbd3e3c
 =#
 
 

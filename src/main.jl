@@ -193,15 +193,6 @@ end
 # TODO: to be deleted
 function exponents_new_generating_set(genset)
 
-    # Tretiy raz brosil starik nevod
-    # Vitashil bagov mnogo
-    
-    # The function opened
-    # Full of bugs.
-    # The bugs are countless,
-    # The function bottomless. 
-
-    
     I, basepolyring, nvariables, ground, ystrings = generate_good_ideal(genset)
 
     # substitute + groebner n times
@@ -292,7 +283,7 @@ function naive_new_generating_set(genset)
               f
           )
           for f in It
-   ]
+    ]
 
     Is = map(F -> change_base_ring(base_ring(yoverxs), F, parent=yoverxs), Is)
 
@@ -348,7 +339,6 @@ function compare_degrees(true_basis, interpolated_basis)
             for (i, c) in enumerate(coeffs(f))
                 true_coeffs[end][true_exps[i]...] = c
             end
-
         end
 
         Rxs = base_ring(true_coeffs[1][[0, 0]])
@@ -407,22 +397,17 @@ function compare_degrees(true_basis, interpolated_basis)
         for (key, val) in myeverything
             for dg in val
                 if haskey(trueverything, key)
-
                     if dg in trueverything[key]
                         hit += 1
                     else
                         @warn "bedabedaogorchenie"
                         # return hit, total
                     end
-
                 else
                     @warn "beda"
                     return hit, total
                 end
-
                 total += 1
-
-
             end
         end
     end
@@ -445,15 +430,10 @@ function display_generating_exponents(genset)
                 if !haskey(answer[idx], ee)
                     answer[idx][ee] = 0
                 end
-
                 dg = degree(g[ee])
-
                 answer[idx][ee] += dg
-
             end
-
         end
-
     end
 
     return answer
@@ -597,30 +577,3 @@ function new_generating_set(genset)
     
     return gb
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

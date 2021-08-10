@@ -1,21 +1,11 @@
-
-
-if !isdefined(Main, :testset)
-    using Test
-    using TestSetExtensions
-end
-
 include("../src/RationalFunctionFields.jl")
 using .RationalFunctionFields: change_parent_ring, singular2aa, aa2singular, 
                         double_singular2aa, double_aa2singular
 
 
-import Singular
-import AbstractAlgebra
-
 @testset "Utils tests" begin
 
-    R, xs = Singular.PolynomialRing(Singular.QQ, ["x", "y"])
+    R, xs = Sing.PolynomialRing(Sing.QQ, ["x", "y"])
     x, y = xs
     f = x + y
 
@@ -24,7 +14,7 @@ import AbstractAlgebra
     revfaa = aa2singular(faa, new_ring=R)
     @test revfaa == f    
 
-    R2, xs2 = Singular.PolynomialRing(R, ["x2", "y2"])
+    R2, xs2 = Sing.PolynomialRing(R, ["x2", "y2"])
     x2, y2 = xs2
     f2 = x2 + y2
 
@@ -34,21 +24,17 @@ import AbstractAlgebra
     @test revf2s == f2
 
     
-    AA, (x, y) = AbstractAlgebra.PolynomialRing(Singular.QQ, ["x", "y"])
+    AA_R, (x, y) = AA.PolynomialRing(Sing.QQ, ["x", "y"])
     f = x + y
-    newparent, (xx, yy, tt) = AbstractAlgebra.PolynomialRing(Singular.QQ, ["x", "y", "t"])
+    newparent, (xx, yy, tt) = AA.PolynomialRing(Sing.QQ, ["x", "y", "t"])
     
     ft, t = change_parent_ring(f, newparent)
     
     @test parent(ft) == newparent 
     @test t == tt
 
-    frev = change_parent_ring(ft, AA)
+    frev = change_parent_ring(ft, AA_R)
 
     @test f == frev
 
-
 end
-
-
-
