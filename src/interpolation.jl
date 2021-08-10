@@ -70,6 +70,7 @@ function interpolate_rational_function(R, xs, ys)
 
     g = interpolate_polynomial(R, xs, ys)
     m = prod(x - xs[i] for i in 1:length(xs))
+    
     polynomial_reconstruction(g, m)
 end
 
@@ -118,10 +119,8 @@ end
 """
     Given a callable functor f tries to find degrees of univariate polynomials
     A, B approximating f as a rational function f = A // B
-    
-    Numeric computations are performed in the given ground field
 """
-function predict_degrees(f, ground)
+function predict_degrees(f)
     # staring from small amount of points..
     n = 8
 
@@ -133,7 +132,7 @@ function predict_degrees(f, ground)
     # "safety condition" to assume f is interpolated correctly indeed
     # failes on first iteration
     while 4*(sum(predicted_degrees) + 2) > n  
-        xs = [ rand(ground) for _ in 1:n  ]
+        xs = [ rand(f) for _ in 1:n  ]
         ys = f.(xs)
             
         interpolated = interpolate_rational_function(polyring, xs, ys)    
@@ -147,6 +146,47 @@ function predict_degrees(f, ground)
     
     predicted_degrees
 end
+
+
+"""
+    Same as the function above, key difference is that here
+    f returns an array of results on each evaluation
+"""
+function simultaneous_predict_degrees(f)
+    # staring from small amount of points..
+    n = 8
+    
+    polyring = base_ring(f)
+    nfrom, nto = arity(f)
+
+    predicted_degrees = [ (n, n) for _ in 1:nto ]
+    already_interpolated = 0    
+
+    while already_interpolated < nto 
+        
+        4*(sum(values(predicted_degrees)) + 2) > n
+        xs = [ rand(f) for _ in 1:n  ]
+        ys = f.(xs)
+
+        for (j, deg) in enumerate(predicted_degrees)
+            if 4*(sum(deg) + 2) < n
+                continue
+            end
+            yparticular = [y[j] for y in ys]
+            interpolated = interpolate_rational_function(polyring, xs, yparticular)
+            
+            predicted_degrees[j] = map(degree, (numerator(interpolated), denominator(interpolated)))
+
+        end
+
+        @debug "for $n points degrees are " predicted_degrees
+
+        n = n * 2
+    end
+
+    predicted_degrees
+end
+
 
 
 

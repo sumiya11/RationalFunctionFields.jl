@@ -1,5 +1,142 @@
 
 
+"""
+    global TODOs:
+        . ensure no function failes
+
+"""
+
+
+"""
+    Computes several groebner bases of the given G
+    while substituting coeffs of the underlying ideal with random points
+    Allows to grasp the general structure of the groebner basis
+        
+    Returns the number of polynomials 
+    and the number of field generators (i.e coeficients)
+    present in the Groebner basis
+"""
+function discover_groebner_structure(G::GroebnerEvaluator)
+    # generate two substitution points for coeffs of G
+    p1, p2 = generate_point(G), generate_point(G)
+        
+    # compute two groebner bases at that point
+    gb1, gb2 = evaluate(G, p1), evaluate(G, p2)
+
+    # obtain general info
+    npolys1, npolys2 = length(gb1), length(gb2)
+    ncoeffs1, ncoeffs2 = map(length ∘ field_generators, [gb1, gb2])
+    
+    if npolys1 != npolys2 || ncoeffs1 != ncoeffs2
+        # :D
+        return discover_groebner_structure(G)
+    end
+
+    npolys1, ncoeffs1
+end
+
+
+"""
+    Returns an array of degrees expected to occure in Groebner basis,
+    i-th array entry corresponds to coeff degree with respect to i-th variable
+"""
+function discover_groebner_degrees(G::GroebnerEvaluator)
+    # staring from small amount of interpolation points 
+    initial_n = 8
+    n = initial_n
+
+    nxs = nvars(G)
+    ground = base_ring(G)
+    npolys, ncoeffs = discover_groebner_structure(G)
+    lightring, = AbstractAlgebra.PolynomialRing(ground, "x")  
+    
+    # generator for inerpolation sequence
+    # sequence_gen^1, sequence_gen^2, sequence_gen^3,...
+    sequence_gen = ground(2)
+    
+    # idx --> max degree
+    answer = zeros(Int, nxs)    
+
+    @debug "nvariables " nxs
+
+    for varidx in 1:nxs
+        n = initial_n   
+        predicted_degrees = [ n for _ in 1:ncoeffs ]
+        all_success = false
+        
+        @debug "handling variable " varidx
+        
+        while !all_success
+            
+            # criterion of interpolation success:
+            # interpolated degree is far less than the amount of interpolation points
+            check_success = (deg) -> 2*(deg + 2) < n
+
+            p = generate_point(G)
+            xs = [ deepcopy(p) for _ in 1:n ]
+            
+            # TODO: sep into a function
+            for k in 1:n
+                xs[k][varidx] = sequence_gen^k
+            end
+
+            # TODO: do this more effective
+            ys = map(field_generators, map(G, xs))
+            
+            all_success = true
+            for (j, deg) in enumerate(predicted_degrees)
+                xi = [ x[varidx] for x in xs ]
+                yi = [ y[j] for y in ys ]
+                
+                # TODO: fix
+                interpolated = lightring(0)
+                try
+                    interpolated = interpolate_rational_function(lightring, xi, yi)
+                catch
+                    @warn "rational interpolation failed =("
+                    all_success = false
+                    break
+                end
+    
+                predicted_degrees[j] = sum(applytofrac(degree, interpolated))
+                
+                all_success = all_success && check_success(predicted_degrees[j])
+            end
+
+            @debug "for $n points and $varidx variable degrees are " predicted_degrees
+
+            n = n * 2
+        end
+        
+        answer[varidx] = maximum(predicted_degrees)
+
+    end
+
+    answer
+end
+
+###############################################################################
+
+"""
+    Returns a plain array of coefficients of the given groebner basis
+"""
+function field_generators(groebner_generators)
+    generators = []
+    for poly in groebner_generators
+        for c in coefficients(poly)
+            push!(generators, c)
+        end
+    end
+    generators
+end
+
+"""
+    Generates the "good" ideal for the given generators set, i.e ideal of form:
+    I = <  >
+    
+    Returns the generated ideal and some auxiliary info
+    
+"""
 function generate_good_ideal(genset)
     basepolyring = parent(numerator( first(genset) ))
     nvariables = length(gens(basepolyring))
@@ -26,27 +163,34 @@ function generate_good_ideal(genset)
         for (Fyi, Fxi) in zip(Fx, Fy)
     ]
     
-    I, basepolyring, nvariables, ground, ystrings, Q
+    I, yoverx, basepolyring, nvariables, ground, ystrings, Q
 end
 
-function evaluate_gb_at_point(I, point, lightring, ground)
-    Is = [
-            map_coefficients(c -> evaluate(c, point), f)
-            for f in I
-         ]
-
-    Is = [
-            change_base_ring(tosingular(ground), f, parent=lightring)
-            for f in Is
-         ]
-
-    Ideal = Singular.Ideal(lightring, Is)
-    gb = Singular.std(Ideal, complete_reduction=true)
+"""
+    Saturates the given ideal by adding 1 - Q*t to its generators
+    where t is the new introduced variable
     
-    gb
+    Returns the saturated ideal and the t variable
+"""
+function saturate(I, Q)
+    R = parent(I[1])
+    base = base_ring(R)
+    strings = map(String, symbols(R))
+    parentring, vs = AbstractAlgebra.PolynomialRing(base, [strings..., "t"])
+
+    t = last(vs)
+    It = [
+        change_parent_ring(f, parentring)[1]
+        for f in I
+    ]
+    sat = 1 - Q*t
+    push!(It, sat)
+    It, t
 end
 
+###############################################################################
 
+# TODO: to be deleted
 function exponents_new_generating_set(genset)
 
     # Tretiy raz brosil starik nevod
@@ -66,8 +210,6 @@ function exponents_new_generating_set(genset)
 
     # TODO: restructure so that interpolation is attampted after each GB computation
     n = 30
-
-    # @info "" I
 
     ans = Dict()
 
@@ -131,35 +273,22 @@ function exponents_new_generating_set(genset)
     return ans
 end
 
-
-function saturate(I, Q)
-    R = parent(I[1])
-    base = base_ring(R)
-    strings = map(String, symbols(R))
-    parentring, vs = AbstractAlgebra.PolynomialRing(base, [strings..., "t"])
-    
-    t = last(vs)
-    It = [
-        change_parent_ring(f, parentring)[1]
-        for f in I
-    ]
-    sat = 1 - Q*t
-    push!(It, sat)
-    It
-end
-
+"""
+    Returns the set of new generators for the field genereted by the given genset
+    with no interpolation involved in computing
+"""
 function naive_new_generating_set(genset)
     
-    I, basepolyring, nvariables, ground, ystrings, Q = generate_good_ideal(genset)
+    I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generate_good_ideal(genset)
 
-    It = saturate(I, Q)
+    It, t = saturate(I, Q)
 
     basepolyrings, = Singular.AsEquivalentSingularPolynomialRing(basepolyring)
     yoverxs,  = Singular.PolynomialRing(basepolyrings, [ystrings..., "t"])
 
     Is = [
           map_coefficients(
-              c -> change_base_ring(FF, c, parent=basepolyrings),
+              c -> change_base_ring(tosingular(ground), c, parent=basepolyrings),
               f
           )
           for f in It
@@ -184,21 +313,15 @@ function naive_new_generating_set(genset)
     end
 
     gb = [
-          change_parent_ring(f, yoverx)
-          for f in gb_no_t
-        ]
+        change_parent_ring(f, yoverx)
+        for f in gb_no_t
+    ]
     
-    generators = []
-    for poly in gb
-        for c in coefficients(poly)
-            push!(generators, c)
-        end
-    end
-
-    return gb, generators
+    return gb
 end
 
 
+# TODO: to be deleted
 function compare_degrees(true_basis, interpolated_basis)
 
     total = 0
@@ -308,7 +431,7 @@ function compare_degrees(true_basis, interpolated_basis)
     return hit, total
 end
 
-
+# TODO: to be deleted
 function display_generating_exponents(genset)
     inter = exponents_new_generating_set(genset)
 
@@ -337,26 +460,32 @@ function display_generating_exponents(genset)
 end
 
 
-
+"""
+    does something
+"""
 function new_generating_set(genset)
 
     #=
         TODO:
             . ensure evaluated generators are of the same structure
-            . handle exponents better
             .
     =#
+    
+    # Generating "good" ideal and saturating it
+    I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generate_good_ideal(genset)
+    It, t = saturate(I, Q)
 
-    I, basepolyring, nvariables, ground, ystrings, Q = generate_good_ideal(genset)
+    # Estimating the largest degree of a coeff in the Groebner basis 
+    eval_ring, = Singular.PolynomialRing(tosingular(ground), [ystrings..., "t"])
+    G = GroebnerEvaluator(It, eval_ring, basepolyring, ground)
 
-    It = saturate(I, Q)
+    exponents = discover_groebner_degrees(G)
+    maxexp = sum(exponents)
+
+    @debug "Maximal exponents per variables: $exponents"
+    @debug "The largest: $maxexp"
 
     # Building a Kronecker substitution
-
-    exponents = display_generating_exponents(genset)
-    maxexp = maximum([maximum(values(s)) for s in exponents])
-    # @info "Maximal exponents per variables: $exponents"
-    @info "The largest: $maxexp"
 
     npoints = (maxexp + 1)^nvariables + 2
     xs = collect(1:npoints)
@@ -364,21 +493,15 @@ function new_generating_set(genset)
                 [ BigInt(j)^i for i in [ (maxexp + 1)^k for k in 0:(nvariables - 1) ] ]
                 for j in xs
              ]
-    @info "The total number of sampling points: $npoints"
+    @debug "The total number of sampling points: $npoints"
     
 
     # Evaluating Groebner bases of specializations
-
-    eval_ring, = Singular.PolynomialRing(tosingular(ground), [ystrings..., "t"])
-    G = groebner_evaluator(It, eval_ring, ground)
+    gbs = [
+        G(point)
+        for point in points
+    ]
     
-    gbs = []
-    
-    for point in points
-        gb = evaluate(G, point)
-        push!(gbs, collect(gens(gb)))
-    end
-
     extended_ring, vvs = AbstractAlgebra.PolynomialRing(ground, [ystrings..., "t"])
     t = vvs[end]
 
@@ -397,6 +520,7 @@ function new_generating_set(genset)
     gbs = gbs_no_t
 
     # remove?
+    # TODO: give it second thought
     gbs = [
             [    
                 change_parent_ring(f, basepolyring)
@@ -438,8 +562,6 @@ function new_generating_set(genset)
                     xs,
                     yssmall
             )
-            # TODO ??? or not to do: handle exponents better ? 
-            
 
             # TODO: separate function, e.g, backward_kronecker
             R = basepolyring
@@ -473,14 +595,7 @@ function new_generating_set(genset)
         push!(gb, finish(polybuilder))
     end
     
-    generators = []
-    for poly in gb
-        for c in coefficients(poly)
-            push!(generators, c)
-        end
-    end
-
-    return gb, generators
+    return gb
 end
 
 

@@ -66,7 +66,7 @@ end
 function double_singular2aa(poly::Singular.spoly{Singular.n_unknown{Singular.spoly{T}}}; base=false, new_ring=false) where {T}
     outer_change = singular2aa(poly)
 
-    basebase = base_ring(parent(unknown2known(collect(coeffs(poly))[1])))
+    basebase = base_ring(parent(unknown2known(collect(coefficients(poly))[1])))
 
     nvariables = length(gens(parent(outer_change)))
     ystrings = ["y$i" for i in 1:nvariables]
@@ -122,6 +122,10 @@ function Base.length(x::Frac{T}) where {T}
     return max(length(numerator(x)), length(denominator(x)))
 end
 
+function applytofrac(f, x::Frac{T}) where {T}
+    return map(f, (numerator(x), denominator(x)))
+end
+
 function tosingular(F::AbstractAlgebra.Generic.Rationals)
     Singular.QQ
 end
@@ -134,14 +138,18 @@ function toaa(::Singular.Rationals)
     AbstractAlgebra.Generic.QQ
 end
 
-function iota(n)
-    return [i for i in 1:n]
-end
+
+###############################################################################
+
+__randx = 10^3
 
 function Base.rand(::AbstractAlgebra.Rationals{BigInt})
-    return AbstractAlgebra.QQ(rand(1:10^4), rand(1:10^4))
+    return AbstractAlgebra.QQ(rand(1:__randx), rand(1:__randx))
 end
 
+function Base.rand(::Singular.Rationals)
+    return Singular.QQ(rand(1:__randx), rand(1:__randx))
+end
 
 ###############################################################################
 

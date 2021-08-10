@@ -60,7 +60,8 @@ function compute_groebner!(
                                FF::RationalFunctionField;
                                backend_algorithm=new_generating_set)
     
-    FF.groebner_ideal, FF.groebner_coeffs = backend_algorithm(FF.generating_set)
+    FF.groebner_ideal = backend_algorithm(FF.generating_set)
+    FF.groebner_coeffs = field_generators(FF.groebner_ideal)
 end
 
 

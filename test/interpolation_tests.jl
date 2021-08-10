@@ -128,7 +128,7 @@ end
 
 end
 
-
+#=
 @testset "Degree prediction tests" begin
     
     
@@ -177,25 +177,7 @@ end
 
 
 end
-
-
-#=
-
-# for future 
-
-using Logging
-
-logger = Logging.SimpleLogger(stderr, Logging.Debug)
-
-Logging.global_logger(logger)
-@debug "lol"
-
-
 =#
-
-
-
-
 
 
 
