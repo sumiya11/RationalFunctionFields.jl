@@ -1,11 +1,11 @@
-using .RationalFunctionFields: interpolate_rational_function, interpolate_multivariate_rational_function, 
+using .RationalFunctionFields: interpolate_rational_function, interpolate_multivariate_rational_function,
                                random_linear_shift, decompose_by_degrees, predict_degrees
 
 
 function test_rational_function_interpolation(f)
-    
+
     R = parent(denominator(f))
-    
+
     # hope we have multivariate ring here
     vs = collect(AA.gens(R))
     nvs = length(vs)
@@ -29,7 +29,7 @@ function test_rational_function_interpolation(f)
     uniring, x = AA.PolynomialRing(AA.QQ, "x")
 
     inter = interpolate_rational_function(uniring, xs, ys)
-        
+
     degf = AA.degree(numerator(f), vs[varidx]), AA.degree(denominator(f), vs[varidx])
     degi = AA.degree(numerator(inter)), AA.degree(denominator(inter))
 
@@ -117,8 +117,8 @@ end
 
 #=
 @testset "Degree prediction tests" begin
-    
-    
+
+
     fs0 = [
         (x) -> 2,
         (x) -> x,
@@ -131,7 +131,7 @@ end
         (0, 1),
         (2, 1)
     ]
-        
+
     fs = [
         (x) -> (x^3 + 1),
         (x) -> (x^16 - 23x^11 + 123),
@@ -141,7 +141,7 @@ end
     ]
 
 
-    answers = [ 
+    answers = [
         (3, 0),
         (16, 0),
         (2, 4),
@@ -156,7 +156,7 @@ end
         d = predict_degrees(f, AA.QQ)
         @test answers0[i] == d
     end
-    
+
     for (i, f) in enumerate(fs)
         d = predict_degrees(f, FF)
         @test answers[i] == d
@@ -164,8 +164,6 @@ end
 
 
 end
-<<<<<<< HEAD
-=======
 
 #################################################################
 
@@ -190,7 +188,7 @@ end
 
 #=
 
-# for future 
+# for future
 
 using Logging
 
@@ -200,19 +198,4 @@ Logging.global_logger(logger)
 @debug "lol"
 
 
->>>>>>> 962fc5c43aaa6d5a41347856a972fb04ffbd3e3c
 =#
-
-
-
-
-
-
-
-
-
-
-
-
-
-

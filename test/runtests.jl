@@ -1,6 +1,6 @@
 using Test
 using TestSetExtensions
-
+using Logging
 
 include("../src/RationalFunctionFields.jl")
 

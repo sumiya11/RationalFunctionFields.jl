@@ -137,7 +137,7 @@ end
     Returns the generated ideal and some auxiliary info
     
 """
-function generate_good_ideal(genset)
+function generators_to_ideal(genset)
     basepolyring = parent(numerator( first(genset) ))
     nvariables = length(gens(basepolyring))
     ground = base_ring(basepolyring)
@@ -193,7 +193,7 @@ end
 # TODO: to be deleted
 function exponents_new_generating_set(genset)
 
-    I, basepolyring, nvariables, ground, ystrings = generate_good_ideal(genset)
+    I, basepolyring, nvariables, ground, ystrings = generators_to_ideal(genset)
 
     # substitute + groebner n times
 
@@ -270,7 +270,7 @@ end
 """
 function naive_new_generating_set(genset)
     
-    I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generate_good_ideal(genset)
+    I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(genset)
 
     It, t = saturate(I, Q)
 
@@ -452,7 +452,7 @@ function new_generating_set(genset)
     =#
     
     # Generating "good" ideal and saturating it
-    I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generate_good_ideal(genset)
+    I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(genset)
     It, t = saturate(I, Q)
 
     # Estimating the largest degree of a coeff in the Groebner basis 
