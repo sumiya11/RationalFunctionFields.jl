@@ -1,5 +1,6 @@
 using .RationalFunctionFields: interpolate_rational_function, interpolate_multivariate_rational_function,
-                               random_linear_shift, decompose_by_degrees, predict_degrees
+random_linear_shift, decompose_by_degrees, interpolate_polynomial,
+generate_kronecker_points
 
 
 function test_rational_function_interpolation(f)
@@ -36,6 +37,7 @@ function test_rational_function_interpolation(f)
     @test degi == degf
 end
 
+#=
 @testset "Rational Interpolation tests" begin
 
     R, (x1, x2, x3) = AA.PolynomialRing(AA.QQ, ["x1", "x2", "x3"])
@@ -54,9 +56,12 @@ end
     end
 
 end
+=#
+
 
 ###############################################################################
 
+#=
 @testset "Interpolation + shift tests" begin
 
     R, (x1, x2, x3) = AA.PolynomialRing(AA.QQ, ["x1", "x2", "x3"])
@@ -114,6 +119,8 @@ end
     @test isone(denominator(F // f)) && isone(numerator(F // f))
 
 end
+=#
+
 
 #=
 @testset "Degree prediction tests" begin
@@ -164,30 +171,117 @@ end
 
 
 end
+=#
 
 #################################################################
 
+@testset "Kronecker points generation tests" begin
+    ground = Sing.GF(2^31 - 1)
+    R, (a, b, c) = AA.PolynomialRing(ground, ["a", "b", "c"])
+    
+    npoints = 100
+    maxexp = 10
+    nvariables = 3    
+
+    polys = [
+        a,
+        a + b + c,
+        a^2 + b^2 + c^3,
+        a*c + b*c + c^3,
+        a*b*c + a^4 + b,
+        a^1*b^2*c^3 - 2a - 3b - 4c,
+        b^10
+    ]
+    
+    xs, points = generate_kronecker_points(ground, npoints, maxexp, nvariables)
+
+    for poly in polys 
+        for (point, x) in zip(points, xs)
+            symbolic_sub = [a, a^(maxexp+1), a^((maxexp+1)^2)]
+            ans = AA.evaluate(AA.evaluate(poly, symbolic_sub), [x, ground(0), ground(0)])
+            @test ans == AA.evaluate(poly, point)
+        end
+    end
+
+end
+
+
+@testset "Polynomial interpolation tests" begin
+    
+    # over Singular finite field
+    FF = Sing.GF(2^31 - 1)
+
+    uniring, x = AA.PolynomialRing(FF, "x")
+    test_cases = [
+        uniring(1),
+        x,
+        x^2 + x + 1,
+        x^4 - x,
+        x^18 + x^17 + 22x^10 + 11
+    ]
+    
+    for case in test_cases
+        numpoints = AA.degree(case) + 1
+        xs = [rand(FF) for _ in 1:numpoints]
+        ys = [AA.evaluate(case, t) for t in xs]
+        ans = interpolate_polynomial(uniring, xs, ys)
+        @test ans == case
+    end
+    
+    # over Singular QQ
+    FF = Sing.QQ
+
+    uniring, x = AA.PolynomialRing(FF, "x")
+    test_cases = [
+        uniring(1),
+        x,
+        x^2 + x + 1,
+        x^4 - x,
+        x^18 + x^17 + 22x^10 + 11
+    ]
+
+    for case in test_cases
+        numpoints = AA.degree(case) + 5
+        xs = [rand(FF) for _ in 1:numpoints]
+        ys = [AA.evaluate(case, t) for t in xs]
+        ans = interpolate_polynomial(uniring, xs, ys)
+        @test ans == case
+    end
+end
+
 @testset "Interpolation tests" begin
 
-    # Why do these tests fail?
-    uniring, x = AA.PolynomialRing(AA.QQ, "x")
+    FF = AA.GF(2^31 - 1)
+    uniring, x = AA.PolynomialRing(FF, "x")
     test_cases = [
+        1 // x,
         (x + 1) // (x + 2),
-        (x^3 - 7) // (3 * x^2 + 1)
+        (x^3 - 7) // (3 * x^2 + 1),
+        (x^18 - 16) // (x + 1),
+        (x + 1)^100 // (x + 2)^100,
     ]
 
     for case in test_cases
         numpoints = 2 * (AA.degree(numerator(case)) + AA.degree(denominator(case)))
-        xs = [rand(1:100000) for _ in 1:numpoints]
+        xs = [rand(FF) for _ in 1:numpoints]
         ys = [AA.evaluate(numerator(case), xval) // AA.evaluate(denominator(case), xval) for xval in xs]
         ans = interpolate_rational_function(uniring, xs, ys)
         @test ans == case
     end
 
+    xs = [FF(2), FF(4), FF(8), FF(16)]
+    ys = [FF(1), FF(1), FF(1), FF(1)]
+    ans = interpolate_rational_function(uniring, xs, ys)
+    @test ans == FF(1)
+    
+    xs = [FF(2), FF(3)]
+    ys = [FF(1), FF(1)]
+    ans = interpolate_rational_function(uniring, xs, ys)
+    @test ans == FF(1)
+    
 end
 
 #=
-
 # for future
 
 using Logging
@@ -198,4 +292,18 @@ Logging.global_logger(logger)
 @debug "lol"
 
 
+uniring, x = AA.PolynomialRing(AA.QQ, "x")
+f = (x) -> (x + 1) // (x + 2),
+
+ans = interpolate_rational_function(uniring, xs, ys)
+println(ans)
+
 =#
+
+
+
+
+
+
+
+

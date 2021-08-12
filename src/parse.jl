@@ -8,7 +8,7 @@ function load_generators(filepath)
     
     strings = map(String, split(lines[1], ", "))
 
-    S, xs = AbstractAlgebra.PolynomialRing(AbstractAlgebra.QQ, strings)
+    S, xs = AbstractAlgebra.PolynomialRing(AbstractAlgebra.QQ, strings, ordering=:lex)
     
     mapping = Dict{Symbol, AbstractAlgebra.Generic.MPoly}(
         Symbol(x) => AbstractAlgebra.gen(S, i)

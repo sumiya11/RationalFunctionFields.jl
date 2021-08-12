@@ -1,12 +1,14 @@
 
+
 function lagrange_interpolant(R, xs, i)
     n = length(xs)
     x = AbstractAlgebra.gen(R)
 
-    f = prod(
+    f = R(prod(
         j == i ? 1 : (x - xs[j])
         for j in 1:n
-    )
+    ))
+
     c = prod(
         j == i ? 1 : (xs[i] - xs[j])
         for j in 1:n
@@ -25,10 +27,6 @@ function interpolate_polynomial(R, xs, ys)
 end
 
 
-# Returns the minimal polynomial of the sequence `h` modulo `m`,
-# the sequence `h` is formed as the given polynomial coefficients
-# If n is max(deg(h), deg(m))
-# O(n^2)
 function polynomial_reconstruction(g, m)
     # The function implements Algorithm 12.9 from
     #   "Modern Computer Algebra", second edition,
@@ -72,13 +70,6 @@ function interpolate_rational_function(R, xs, ys)
     m = prod(x - xs[i] for i in 1:length(xs))
     
     polynomial_reconstruction(g, m)
-end
-
-
-function kronecker_substitution(f)
-    r, t = numerator(f), denominator(f)
-   
-
 end
 
 
@@ -189,7 +180,7 @@ end
 
 
 function backward_kronecker(
-                     f::AbstractAlgebra.Generic.Poly{T},
+                     f,
                      target_ring,
                      maxexp) where {T}
 
@@ -221,6 +212,14 @@ function backward_kronecker(
         backward_kronecker(denominator(f), target_ring, maxexp)
 end
 
+function generate_kronecker_points(ground, npoints, maxexp, nvariables)
+    xs = [rand(ground) for _ in 1:npoints]
+    points = [
+        [ ground(j)^i for i in [ (maxexp + 1)^k for k in 0:(nvariables - 1) ] ]
+          for j in xs
+    ]
+    xs, points
+end
 
 
 

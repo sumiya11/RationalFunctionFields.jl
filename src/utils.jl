@@ -51,6 +51,19 @@ function unknown2known(u)
     libSingular.julia(libSingular.cast_number_to_void(u.ptr))    
 end
 
+function julia(x::Singular.n_FieldElem{Singular.FieldElemWrapper{Nemo.GaloisField,Nemo.gfp_elem}})
+    libSingular.julia(libSingular.cast_number_to_void(x.ptr)).data
+end
+
+function julia(x::Singular.N_Field{Singular.FieldElemWrapper{U, T}}) where {U, T}
+    libSingular.julia(x.ptr).data 
+end
+
+function julia(x)
+    x
+end
+
+
 function singular2aa(poly::Singular.spoly{T}; base=false, new_ring=false) where {T}
     nvariables = length(gens(parent(poly)))
     xstrings = ["x$i" for i in 1:nvariables]
@@ -58,7 +71,7 @@ function singular2aa(poly::Singular.spoly{T}; base=false, new_ring=false) where 
         base = base_ring(poly)
     end
     if new_ring == false
-        new_ring, = AbstractAlgebra.PolynomialRing(base, xstrings)
+        new_ring, = AbstractAlgebra.PolynomialRing(base, xstrings, ordering=:lex)
     end
     change_base_ring(base, poly, parent=new_ring)
 end
@@ -72,7 +85,7 @@ function double_singular2aa(
 
     nvariables = length(gens(parent(outer_change)))
     ystrings = ["y$i" for i in 1:nvariables]
-    new_ring, = AbstractAlgebra.PolynomialRing(basebase, ystrings)
+    new_ring, = AbstractAlgebra.PolynomialRing(basebase, ystrings, ordering=:lex)
 
     inner_change = map_coefficients(
                       c -> singular2aa(unknown2known(c), base=basebase, new_ring=base),
@@ -88,7 +101,7 @@ function aa2singular(poly::MPoly{T}; base=false, new_ring=false) where {T}
         base = base_ring(poly)
     end
     if new_ring == false
-        new_ring, = Singular.PolynomialRing(base, xstrings)
+        new_ring, = Singular.PolynomialRing(base, xstrings, ordering=:lex)
     end
     change_base_ring(base, poly, parent=new_ring)    
 end
@@ -99,10 +112,10 @@ function double_aa2singular(poly::MPoly{T}; base=false, new_ring=false) where {T
     xstrings = ["x$i" for i in 1:nvariables]
     basebase = base_ring(base_ring(parent(poly)))
     if base == false
-        base, = Singular.PolynomialRing(basebase, xstrings)
+        base, = Singular.PolynomialRing(basebase, xstrings, ordering=:lex)
     end
     if new_ring == false
-        new_ring, = Singular.PolynomialRing(base, ystrings)
+        new_ring, = Singular.PolynomialRing(base, ystrings, ordering=:lex)
     end
     change_base_ring(base_ring(new_ring), poly, parent=new_ring)
 end
@@ -153,7 +166,15 @@ function Base.rand(::Singular.Rationals)
     return Singular.QQ(rand(1:__randx), rand(1:__randx))
 end
 
+
+function Base.rand(wrapped::Singular.N_Field{Singular.FieldElemWrapper{U, T}}) where {U, T}
+    return Base.rand( julia(wrapped) )
+end
+
 ###############################################################################
+
+
+
 
 
 

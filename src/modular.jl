@@ -16,6 +16,8 @@ is congruent a modulo m
 a, m are integers
 """
 function rational_reconstruction(a::I, m::I) where {I<:Union{Int, BigInt}}
+    # restricting to I<:Union{Int, BigInt} for compatibility reasons
+
     a = mod(a, m)
     if a == 0 || m == 0
         return QQ(0, 1)
@@ -52,10 +54,31 @@ function rational_reconstruction(a::I, m::I) where {I<:Union{Int, BigInt}}
     ))
 end
 
+function rational_reconstruction(f::Nemo.gfp_elem, m)
+    rational_reconstruction(BigInt(f.data), m)
+end
+
+function rational_reconstruction(f::AbstractAlgebra.GFElem{T}, m) where {T}
+    rational_reconstruction(AbstractAlgebra.lift(f), m)
+end
+
+function rational_reconstruction(f::Union{MPoly, gfp_mpoly}, m)
+    map_coefficients(c -> rational_reconstruction(c, m), f)
+end
+
+function rational_reconstruction(f::Frac, m)
+    rational_reconstruction(numerator(f), m) //
+        rational_reconstruction(denominator(f), m)
+end
+
+function rational_reconstruction(A::Array, m)
+    map(c -> rational_reconstruction(c, m), A)
+end
+
 #------------------------------------------------------------------------------
 
 function modular_reduction(x, field)
-    n, d = field(Integer(numerator(x))), field(Integer(denominator(x)))
+    n, d = field(Int(numerator(x))), field(Int(denominator(x)))
     if iszero(d)
         throw(DomainError(
             :($x), "modular reduction of $x (to $field) does not exist"
@@ -85,15 +108,6 @@ function modular_reduction(arr::Array, field)
     map(f -> modular_reduction(f, field), arr)
 end
 
-
-function rational_reconstruction(f::MPoly)
-    map_coefficients(c -> modular_reduction(c, field), f)
-end
-
-function rational_reconstruction(f::Frac)
-    rational_reconstruction(numerator(f)) //
-        rational_reconstruction(denominator(f))
-end
 
 
 

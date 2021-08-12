@@ -2,9 +2,9 @@
 import Singular
 import AbstractAlgebra
 
-
-AA = AbstractAlgebra
-
+using .RationalFunctionFields: new_generating_set, generators_to_ideal, GroebnerEvaluator, 
+                         discover_groebner_structure, discover_groebner_degrees, saturate,
+                         naive_new_generating_set, field_generators 
 
 logger = Logging.SimpleLogger(stderr, Logging.Debug)
 Logging.global_logger(logger)
@@ -17,7 +17,7 @@ end
 # essentially a sanity check
 @testset "Naive generation tests" begin
 
-    R, (x1, x2) = AA.PolynomialRing(Singular.QQ, ["x1", "x2"])
+    R, (x1, x2) = AA.PolynomialRing(Sing.QQ, ["x1", "x2"])
 
     set = [
            (x1^2 + x2^2) // 1,
@@ -32,11 +32,10 @@ end
 end
 
 
-@testset "GroebnerEvaluator related tests" begin
+@testset "Groebner structure tests" begin
 
     # ogo, chto-to novoe
-    # FF, x = Singular.FiniteField(2^31-1, 1, "x")
-    FF = Singular.QQ
+    FF = Sing.QQ
 
     R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
 
@@ -60,10 +59,10 @@ end
 end
 
 
-@testset "Groebner degree prediction" begin
+@testset "Groebner degree prediction tests" begin
     # now to the degree prediction tests
 
-    FF = Singular.QQ
+    FF = Sing.QQ
 
     R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
 
@@ -97,21 +96,27 @@ end
 
 
 @testset "Groebner main algorithm tests" begin
+    
+    # AA polys, Singular.QQ
+    
     FF = Singular.QQ
-
     R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
 
-    # true generating coeffs here:
-    # -1, x1*x2, -1, -1, x1^2 + x2^2, x1*x2, 1, -x1^2 - x2^2
     set = [
            (x1^2 + x2^2) // 1,
            (x1*x2) // 1
     ]
+    newset = new_generating_set(set, modular=false)
 
+    println(newset)
+
+
+    # AA polys, Singular.QQ + modular
+    
     newset = new_generating_set(set)
 
-    # good test
-    @test true
+    println(newset) 
+
 end
 
 

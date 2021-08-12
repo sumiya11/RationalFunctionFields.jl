@@ -1,8 +1,8 @@
 
 mutable struct RationalFunctionField
-    generating_set     # present always
-    groebner_coeffs    # lazy field, not to be addressed directly
-    groebner_ideal     # lazy field, not to be addressed directly
+    generating_set       # present always
+    groebner_coeffs      # lazy field, not to be addressed directly
+    groebner_ideal       # lazy field, not to be addressed directly
 end
 
 
@@ -15,7 +15,20 @@ function gens(FF::RationalFunctionField)
 end
 
 function contains_randomized(FF::RationalFunctionField, elem)
-    # pass
+    G = GroebnerEvaluator(FF.generating_set)    
+    p = generate_point(G)
+    
+    gb = evaluate(G, p)
+    x = evaluate(elem, p)
+    
+    println( gb )
+    println( typeof(first(gb)) )
+
+    # xs = Ideal(yoverxs, x)
+    # gbs = Ideal(yoverxs, gb)
+
+    return Singular.contains(gbs, xs)
+    
 end
 
 
@@ -23,31 +36,11 @@ function contains_using_groebner(FF::RationalFunctionField, elem)
     # elem = A // B
     A, B = numerator(elem), denominator(elem)
     
-    I = FF.groebner_ideal
+    Is, yoverx, basepolyring, yoverxs, basepolyrings, fracbases = aa_ideal_to_singular(FF.groebner_ideal)
     
-    nvs = nvars(parent(A))
-    xstrings = ["x$i" for i in 1:nvs]
-    ystrings = ["y$i" for i in 1:nvs]
-   
-    basepolyring = parent(A)
-    F = base_ring(basepolyring)
-    
-    yoverx, yoverxvars = AbstractAlgebra.PolynomialRing(basepolyring, ystrings)
-
     Ay = change_base_ring(basepolyring, A, parent=yoverx)
     By = change_base_ring(basepolyring, B, parent=yoverx)
-
-    basepolyrings, = Singular.AsEquivalentSingularPolynomialRing(basepolyring)
-    fracbases = FractionField(basepolyrings)
-    yoverxs, = Singular.PolynomialRing(fracbases, ystrings)
-    
-    Is = [
-          map_coefficients(c -> change_base_ring(F, numerator(c), parent=basepolyrings) // change_base_ring(F, denominator(c), parent=basepolyrings), f) for f in I 
-    ]
-
-    Is = map(c -> change_base_ring(base_ring(yoverxs), c, parent=yoverxs), Is)
-
-    f = change_base_ring(base_ring(yoverxs), A * By - Ay * B, parent=yoverxs)  
+    f = change_base_ring(basepolyrings, A * By - Ay * B, parent=yoverxs)  
     
     fs = Ideal(yoverxs, f)
     Is = Ideal(yoverxs, Is)

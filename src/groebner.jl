@@ -1,8 +1,9 @@
 
 
-
 mutable struct GroebnerEvaluator
     underlying_ideal
+    
+    # we want these *not* to be wrapped into Singular
     eval_ring
     coeff_ring
     ground
@@ -32,9 +33,12 @@ function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
             map_coefficients(c -> evaluate(c, p), f)
             for f in G.underlying_ideal
          ]
-
+    
+    # @info "" first(Is) parent(first(Is)) base_ring(first(Is))
+    # @info "" G.ground G.eval_ring G.coeff_ring
+    
     Is = [
-            change_base_ring(tosingular(G.ground), f, parent=G.eval_ring)
+            change_base_ring(base_ring(G.eval_ring), f, parent=G.eval_ring)
             for f in Is
     ]
 
@@ -61,6 +65,8 @@ end
 function AbstractAlgebra.base_ring(G::GroebnerEvaluator)
     return G.ground
 end
+
+
 
 
 

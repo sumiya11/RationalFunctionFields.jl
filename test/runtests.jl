@@ -9,6 +9,7 @@ using .RationalFunctionFields
 # Ask me about this
 AA = RationalFunctionFields.AbstractAlgebra
 Sing = RationalFunctionFields.Singular
+Nemo = RationalFunctionFields.Nemo
 
 @info "Testing started"
 

@@ -29,6 +29,7 @@ function discover_groebner_structure(G::GroebnerEvaluator)
     
     if npolys1 != npolys2 || ncoeffs1 != ncoeffs2
         # :D
+        @debug "discovering failed.. recursive call"
         return discover_groebner_structure(G)
     end
 
@@ -81,7 +82,7 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
             end
 
             # TODO: do this more effective
-            ys = map(field_generators, map(G, xs))
+            ys = map(c -> julia.(c), map(field_generators, map(G, xs)))
             
             all_success = true
             for (j, deg) in enumerate(predicted_degrees)
@@ -90,6 +91,7 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
                 
                 # TODO: fix
                 interpolated = lightring(0)
+
                 try
                     interpolated = interpolate_rational_function(lightring, xi, yi)
                 catch
@@ -97,7 +99,7 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
                     all_success = false
                     break
                 end
-    
+                
                 predicted_degrees[j] = sum(applytofrac(degree, interpolated))
                 
                 all_success = all_success && check_success(predicted_degrees[j])
@@ -277,7 +279,9 @@ function naive_new_generating_set(genset)
     I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(genset)
 
     It, t = saturate(I, Q)
-
+    
+    # TODO: ask : why could this naive computation fail for lex ordering 
+    #             and work fine for degrevlex
     basepolyrings, = Singular.AsEquivalentSingularPolynomialRing(basepolyring)
     yoverxs,  = Singular.PolynomialRing(basepolyrings, [ystrings..., "t"])
 
@@ -351,7 +355,7 @@ function compare_degrees(true_basis, interpolated_basis)
         ground = base_ring(Rxs)
 
         xstrings = ["x$i" for i in 1:length(xsvars)]
-        Rxsaa, myxs = AbstractAlgebra.PolynomialRing(ground, xstrings)
+        Rxsaa, myxs = AbstractAlgebra.PolynomialRing(ground, xstrings, ordering=:lex)
 
         x = xsvars[varidx]
         myx = myxs[varidx]
@@ -444,33 +448,69 @@ function display_generating_exponents(genset)
 end
 
 
+function aa_ideal_to_singular(I)
+    basepolyring = parent(first(I))
+    nvs = nvars(basepolyring)
+
+    xstrings = ["x$i" for i in 1:nvs]
+    ystrings = ["y$i" for i in 1:nvs]
+
+    F = base_ring(basepolyring)
+
+    yoverx, yoverxvars = AbstractAlgebra.PolynomialRing(basepolyring, ystrings)
+
+    basepolyrings, = Singular.AsEquivalentSingularPolynomialRing(basepolyring)
+    fracbases = FractionField(basepolyrings)
+    yoverxs, = Singular.PolynomialRing(fracbases, ystrings)
+
+    Fs = base_ring(basepolyrings)
+    
+    Is = [
+          map_coefficients(c -> change_base_ring(Fs, numerator(c), parent=basepolyrings) // change_base_ring(Fs, denominator(c), parent=basepolyrings), f) for f in I
+    ]
+
+    Is = map(c -> change_base_ring(base_ring(yoverxs), c, parent=yoverxs), Is)
+    
+    Is, yoverx, basepolyring, yoverxs, basepolyrings, fracbases
+end
+
+
 """
     does something
-"""
-function new_generating_set(genset)
 
+    genset: an array of AbstractAlgebra polynomials over AbstractAlgebra.QQ
+"""
+function new_generating_set(genset; modular=true)
+    
     #=
         TODO:
             . ensure evaluated generators are of the same structure
             .
     =#
     
-    ### Nemo, AA, Sing
+    ### AA polys !!!
     
     modulo = 2^31 - 1
-    FF = AbstractAlgebra.GF(modulo)
-
-    genset = modular_reduction(genset, FF)
+    FF = Singular.GF(modulo)
+    
+    if modular
+        genset = modular_reduction(genset, FF)
+    end
 
     # Generating "good" ideal and saturating it
     I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(genset)
     It, t = saturate(I, Q)
     
-    @info "" yoverx basepolyring ground 
+    @info "" yoverx basepolyring ground
 
     # Estimating the largest degree of a coeff in the Groebner basis 
-    eval_ring, = Singular.PolynomialRing(tosingular(ground), [ystrings..., "t"])
-    G = GroebnerEvaluator(It, eval_ring, basepolyring, ground)
+    eval_ring, evalvars = Singular.PolynomialRing(
+                                        ground,
+                                        [ystrings..., "t"],
+                                        ordering=:lex)
+    t = evalvars[end]
+    
+    G = GroebnerEvaluator(It, eval_ring)
 
     exponents = discover_groebner_degrees(G)
     maxexp = sum(exponents)
@@ -481,11 +521,8 @@ function new_generating_set(genset)
     # Building a Kronecker substitution
 
     npoints = (maxexp + 1)^nvariables + 2
-    xs = collect(1:npoints)
-    points = [ 
-                [ BigInt(j)^i for i in [ (maxexp + 1)^k for k in 0:(nvariables - 1) ] ]
-                for j in xs
-             ]
+    xs, points = generate_kronecker_points(ground, npoints, maxexp, nvariables)
+    println( points )
     @debug "The total number of sampling points: $npoints"
     
 
@@ -500,8 +537,6 @@ function new_generating_set(genset)
                                                  [ystrings..., "t"],
                                                  ordering=:lex
                                          )
-    t = vvs[end]
-
 
     gbs_no_t = []
     for gb in gbs
@@ -532,11 +567,11 @@ function new_generating_set(genset)
 
         for ev in exponent_vectors(gg)
 
-            yssmall = [
+            yssmall = map(julia, [
                 haskey(y[j], ev) ? y[j][ev] : ground(0)
                 for y in ys
-            ]
-
+            ])
+            
 
             f = interpolate_multivariate_rational_function(
                     basepolyring,
@@ -544,7 +579,7 @@ function new_generating_set(genset)
                     xs,
                     yssmall
             )
-
+            
             answer_e[j][ev] = backward_kronecker(f, basepolyring, maxexp)
 
         end
@@ -566,7 +601,11 @@ function new_generating_set(genset)
         end
         push!(gb, finish(polybuilder))
     end
-    
+
+    if modular
+        gb = rational_reconstruction(gb, BigInt(modulo))
+    end
+
     return gb
 end
 
