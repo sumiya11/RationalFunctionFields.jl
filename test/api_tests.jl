@@ -20,6 +20,6 @@ end
     
     println( contains_using_groebner( FF, a*b // 1 ) )
     
-    println(  contains_randomized(FF, a*b // 1 ) )
+    #println(  contains_randomized(FF, a*b // 1 ) )
 
 end

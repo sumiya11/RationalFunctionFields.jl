@@ -46,7 +46,7 @@ function contains_randomized(FF::RationalFunctionField, elem)
     i = Singular.Ideal(eval_ring, x)
     I = Singular.Ideal(eval_ring, gb)
 
-    return Singular.contains(I, i)
+    return Singular.contains(I, numerator(elem) - x * denominator(elem))
     
 end
 

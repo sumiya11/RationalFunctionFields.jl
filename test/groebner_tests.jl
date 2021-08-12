@@ -1,7 +1,3 @@
-
-import Singular
-import AbstractAlgebra
-
 using .RationalFunctionFields: new_generating_set, generators_to_ideal, GroebnerEvaluator, 
                          discover_groebner_structure, discover_groebner_degrees, saturate,
                          naive_new_generating_set, field_generators, aa_ideal_to_singular 
@@ -10,7 +6,7 @@ logger = Logging.SimpleLogger(stderr, Logging.Debug)
 Logging.global_logger(logger)
 
 
-@testset "Preliminaries test" begin
+@testset "Preliminary test" begin
     
 
     R, (x1, x2) = AA.PolynomialRing(Sing.QQ, ["x1", "x2"])
@@ -98,7 +94,7 @@ end
 
 
     ##### hmmm
-
+    # Gleb: ??
 
     R, (x, y, z) = AA.PolynomialRing(Sing.QQ, ["x", "y", "z"])
     gens = [ (x^2 - z^2) // (x + y), x*y // (x + y), 1//z, z^2 // 1 ] 
@@ -111,8 +107,6 @@ end
     
     println( npolys, " !!!!!!!!!!!!! ",  ncoeffs )
     
-    exit()
-
 end
 
 
@@ -199,6 +193,7 @@ end
     Is, _, _, yoverxs, basepolyrings, _ =  aa_ideal_to_singular(newset)
     
     Rs, (xs1, xs2) = Sing.PolynomialRing(FF, ["x1", "x2"])
+    # Gleb: why is this again here?
     sets = [
         (xs1 + xs2) // 1,
         xs1*xs2 // 1

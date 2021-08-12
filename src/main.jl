@@ -44,6 +44,8 @@ end
 """
     Returns an array of degrees expected to occure in Groebner basis,
     i-th array entry corresponds to coeff degree with respect to i-th variable
+
+    Gleb: how exactly is array built?
 """
 function discover_groebner_degrees(G::GroebnerEvaluator)
     # staring from small amount of interpolation points 
@@ -81,13 +83,16 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
             xs = [ deepcopy(p) for _ in 1:n ]
             
             # TODO: sep into a function
+            # Gleb: how about broadcast: xs[k] = sequence_gen.^(1:n)  ?
             for k in 1:n
                 xs[k][varidx] = sequence_gen^k
             end
             
+            # Gleb: why not @debug ?
             println( xs , typeof(xs[1])) 
 
             # TODO: do this more effective
+            # Gleb: What is this ?!
             ys = map(c -> julia.(c), map(field_generators, map(G, xs)))
             println( ys , typeof(xs[1]))
             
@@ -138,6 +143,7 @@ end
 function field_generators(groebner_generators)
     generators = []
     for poly in groebner_generators
+        # Gleb: push!(generators, coefficients(poly)...) should work
         for c in coefficients(poly)
             push!(generators, c)
         end
@@ -152,6 +158,8 @@ end
     Returns the generated ideal and some auxiliary info
     
 """
+# Gleb: As far as I see, this function is always followed by saturation (and this makes perfect sense) 
+# I suggest to do the saturation right here
 function generators_to_ideal(genset)
     basepolyring = parent(numerator( first(genset) ))
     nvariables = length(gens(basepolyring))
@@ -177,11 +185,13 @@ function generators_to_ideal(genset)
     Qx = Q
     Qy = change_base_ring(basepolyring, Q, parent=yoverx)
 
+    # Gleb: to cancel Fyi and Qy by their gcd
     I = [
-        Fyi*Qx - Fxi*Qy
+        Fyi * Qx - Fxi * Qy
         for (Fyi, Fxi) in zip(Fx, Fy)
     ]
     
+    # Gleb: how about a named tuple here? Impossible to remember the order
     I, yoverx, basepolyring, nvariables, ground, ystrings, Q
 end
 
@@ -210,6 +220,7 @@ end
 ###############################################################################
 
 # TODO: to be deleted
+# Gleb: and what are we waiting for? I like to delete
 function exponents_new_generating_set(genset)
 
     I, basepolyring, nvariables, ground, ystrings = generators_to_ideal(genset)
@@ -295,6 +306,7 @@ function naive_new_generating_set(genset)
     
     # TODO: ask : why could this naive computation fail for lex ordering 
     #             and work fine for degrevlex
+    # Gleb: degrevlex is typically much more efficient, just common wisdom (I do not have a good concise explanation)
     basepolyrings, = Singular.AsEquivalentSingularPolynomialRing(basepolyring)
     yoverxs,  = Singular.PolynomialRing(basepolyrings, [ystrings..., "t"])
 
@@ -467,6 +479,7 @@ function aa_ideal_to_singular(I)
 
     xstrings = ["x$i" for i in 1:nvs]
     ystrings = ["y$i" for i in 1:nvs]
+    # Gleb: do you assume that the input variables are always x1, x2, ... ?
 
     F = base_ring(basepolyring)
 
@@ -553,8 +566,6 @@ function new_generating_set(genset; modular=true)
 
 
     # Performing univariate interpolation
-
-    # 
     uni, = AbstractAlgebra.PolynomialRing(ground, "x")
 
     ys = []
@@ -577,6 +588,7 @@ function new_generating_set(genset; modular=true)
         for ev in exponent_vectors(gg)
 
             yssmall = map(julia, [
+                # Gleb: you can write get(y[j], ev, ground(0))
                 haskey(y[j], ev) ? y[j][ev] : ground(0)
                 for y in ys
             ])
