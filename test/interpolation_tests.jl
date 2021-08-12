@@ -1,6 +1,6 @@
 using .RationalFunctionFields: interpolate_rational_function, interpolate_multivariate_rational_function,
 random_linear_shift, decompose_by_degrees, interpolate_polynomial,
-generate_kronecker_points
+generate_kronecker_points, backward_kronecker
 
 
 function test_rational_function_interpolation(f)
@@ -203,6 +203,38 @@ end
         end
     end
 
+end
+
+@testset "Kronecker backward substitution tests" begin
+    FF = Sing.QQ
+    R, (x1, x2, x3) = AA.PolynomialRing(FF, ["x1", "x2", "x3"])
+    uni, x = AA.PolynomialRing(FF, "x")
+
+    truefs = [
+        x1,
+        x2,
+        x3,
+        x1^2 + x1*x2^2 + x1*x2*x3 + x3 + 1,
+        x1 + x2^5 + x3,
+    ]
+    fs = [
+        x,
+        x^2,
+        x^4,
+        x^2 + x*x^8 + x*x^4*x^16 + x^16 + 1,
+        x + x^30 + x^36
+    ]
+    maxexps = [
+        1,
+        1,
+        1,
+        3,
+        5
+    ]
+    
+    for (truef, f, maxexp) in zip(truefs, fs, maxexps)    
+        @test backward_kronecker(f, R, maxexp) == truef
+    end
 end
 
 

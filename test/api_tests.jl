@@ -1,6 +1,6 @@
 
 using .RationalFunctionFields: RationalFunctionField, compute_groebner!,
-                    contains_using_groebner
+                    contains_using_groebner, contains_randomized
 
 logger = Logging.SimpleLogger(stderr, Logging.Debug)
 Logging.global_logger(logger)
@@ -18,6 +18,8 @@ end
     FF = RationalFunctionField(set)
     compute_groebner!(FF)  
     
-    contains_using_groebner(FF, a // b)
+    println( contains_using_groebner( FF, a*b // 1 ) )
+    
+    println(  contains_randomized(FF, a*b // 1 ) )
 
 end

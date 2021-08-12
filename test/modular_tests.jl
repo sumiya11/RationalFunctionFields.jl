@@ -18,7 +18,8 @@ using .RationalFunctionFields: modular_reduction, rational_reconstruction
     xrs = modular_reduction(xs, FF)
     ys  = rational_reconstruction(xrs, BigInt(modulo))
 
-    
+    @test xs == xrs    
+
     xs  = [ Nemo.QQ(rand(1:10000), rand(1:10000)) for _ in 1:10 ]
     xrs = modular_reduction(xs, FF) 
     ys  = rational_reconstruction(xrs, BigInt(modulo)) 

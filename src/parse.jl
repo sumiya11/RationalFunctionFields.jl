@@ -1,3 +1,15 @@
+
+
+
+
+
+
+"""
+    Loads a set of generators from the file by given filepath
+    One could check valid file examples in the RFF/data directory
+    
+    Returns a set of fractions of AA polys over AA rationals
+"""
 function load_generators(filepath)
     lines = []
     open(filepath, "r") do inputs
@@ -15,7 +27,6 @@ function load_generators(filepath)
         for (i, x) in enumerate(strings)
     )
     
-
     generators = []
 
     for line in lines[2:end]
@@ -24,6 +35,29 @@ function load_generators(filepath)
         
         append!(generators, [ g // polys[1] for g in polys[2:end] ])
     end
+       
+    @info "loaded $(length(generators)) from $filepath"
     
     return generators
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

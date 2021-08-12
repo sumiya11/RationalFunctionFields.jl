@@ -15,19 +15,38 @@ function gens(FF::RationalFunctionField)
 end
 
 function contains_randomized(FF::RationalFunctionField, elem)
-    G = GroebnerEvaluator(FF.generating_set)    
+    # TODO: merge into a funuction
+    I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(FF.generating_set)
+    It, t = saturate(I, Q)
+
+    @info "" yoverx basepolyring ground
+
+    # Estimating the largest degree of a coeff in the Groebner basis
+    eval_ring, evalvars = Singular.PolynomialRing(
+                                        ground,
+                                        [ystrings..., "t"],
+                                        ordering=:lex)
+    t = evalvars[end]
+
+    G = GroebnerEvaluator(It, eval_ring)
+
     p = generate_point(G)
     
     gb = evaluate(G, p)
     x = evaluate(elem, p)
-    
+        
     println( gb )
     println( typeof(first(gb)) )
+    
+    gb = filter(f -> degree(f, t) == 0, gb)
 
-    # xs = Ideal(yoverxs, x)
-    # gbs = Ideal(yoverxs, gb)
+    println( gb )
+    println( x, " :: ", typeof(x) )
+    
+    i = Singular.Ideal(eval_ring, x)
+    I = Singular.Ideal(eval_ring, gb)
 
-    return Singular.contains(gbs, xs)
+    return Singular.contains(I, i)
     
 end
 
@@ -40,11 +59,13 @@ function contains_using_groebner(FF::RationalFunctionField, elem)
     
     Ay = change_base_ring(basepolyring, A, parent=yoverx)
     By = change_base_ring(basepolyring, B, parent=yoverx)
-    f = change_base_ring(basepolyrings, A * By - Ay * B, parent=yoverxs)  
+    f = change_base_ring(base_ring(yoverxs), A * By - Ay * B, parent=yoverxs)  
     
     fs = Ideal(yoverxs, f)
     Is = Ideal(yoverxs, Is)
     
+    println( FF.groebner_coeffs )
+
     return Singular.contains(Is, fs)
 end
 

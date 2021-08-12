@@ -22,6 +22,10 @@ function discover_groebner_structure(G::GroebnerEvaluator)
         
     # compute two groebner bases at that point
     gb1, gb2 = evaluate(G, p1), evaluate(G, p2)
+    
+    println(p1, " | ", p2)
+    println(G)
+    println(gb1, " | ", gb2)
 
     # obtain general info
     npolys1, npolys2 = length(gb1), length(gb2)
@@ -80,15 +84,22 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
             for k in 1:n
                 xs[k][varidx] = sequence_gen^k
             end
+            
+            println( xs , typeof(xs[1])) 
 
             # TODO: do this more effective
             ys = map(c -> julia.(c), map(field_generators, map(G, xs)))
+            println( ys , typeof(xs[1]))
             
             all_success = true
             for (j, deg) in enumerate(predicted_degrees)
                 xi = [ x[varidx] for x in xs ]
                 yi = [ y[j] for y in ys ]
                 
+                println("########")
+                @debug "" xi, " ---> ", yi
+                println("########")
+
                 # TODO: fix
                 interpolated = lightring(0)
 
@@ -99,6 +110,8 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
                     all_success = false
                     break
                 end
+
+                @debug "" interpolated
                 
                 predicted_degrees[j] = sum(applytofrac(degree, interpolated))
                 
@@ -532,12 +545,6 @@ function new_generating_set(genset; modular=true)
         for point in points
     ]
     
-    extended_ring, vvs = AbstractAlgebra.PolynomialRing(
-                                                 ground,
-                                                 [ystrings..., "t"],
-                                                 ordering=:lex
-                                         )
-
     gbs_no_t = []
     for gb in gbs
         push!(gbs_no_t, filter(f -> degree(f, t) == 0, gb))
@@ -561,6 +568,8 @@ function new_generating_set(genset; modular=true)
         end
 
     end
+    
+    # TODO: reconsider this scary cycle
 
     answer_e = [Dict() for _ in 1:length(gbs[1])]
     for (j, gg) in enumerate(gbs[1])
@@ -572,9 +581,9 @@ function new_generating_set(genset; modular=true)
                 for y in ys
             ])
             
+            @debug "" uni xs yssmall
 
-            f = interpolate_multivariate_rational_function(
-                    basepolyring,
+            f = interpolate_rational_function(
                     uni,
                     xs,
                     yssmall
@@ -604,6 +613,12 @@ function new_generating_set(genset; modular=true)
 
     if modular
         gb = rational_reconstruction(gb, BigInt(modulo))
+        gb = map(
+                f -> map_coefficients(
+                       c -> change_base_ring(Singular.QQ, numerator(c)) //
+                            change_base_ring(Singular.QQ, denominator(c)),
+                       f),
+                gb)
     end
 
     return gb
