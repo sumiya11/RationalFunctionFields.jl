@@ -15,6 +15,8 @@ function gens(FF::RationalFunctionField)
 end
 
 function contains_randomized(FF::RationalFunctionField, elem)
+    # TODO: use Theorem 3.3 from the draft
+
     # TODO: merge into a funuction
     I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(FF.generating_set)
     It, t = saturate(I, Q)
@@ -25,6 +27,7 @@ function contains_randomized(FF::RationalFunctionField, elem)
     eval_ring, evalvars = Singular.PolynomialRing(
                                         ground,
                                         [ystrings..., "t"],
+                                        # TODO: degrevlex
                                         ordering=:lex)
     t = evalvars[end]
 
@@ -33,11 +36,14 @@ function contains_randomized(FF::RationalFunctionField, elem)
     p = generate_point(G)
     
     gb = evaluate(G, p)
+
+    # TODO: make a function ratfunc -> poly, and use it here and in generators_to_ideal
     x = evaluate(elem, p)
         
     println( gb )
     println( typeof(first(gb)) )
     
+    # TODO: not needed
     gb = filter(f -> degree(f, t) == 0, gb)
 
     println( gb )
