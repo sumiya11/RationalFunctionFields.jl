@@ -15,14 +15,23 @@ function gens(FF::RationalFunctionField)
 end
 
 function contains_randomized(FF::RationalFunctionField, elem)
+    # TODO: use Theorem 3.3 from the draft
+
     # TODO: merge into a funuction
     It, yoverx, basepolyring, nvariables, ground, ystrings, Q, t = generators_to_saturated_ideal(FF.generating_set)
 
     # Estimating the largest degree of a coeff in the Groebner basis
     eval_ring, evalvars = Singular.PolynomialRing(
+<<<<<<< HEAD
                               ground,
                               [ystrings..., "t"],
                               ordering=ordering_lp(nvariables)*ordering_c())
+=======
+                                        ground,
+                                        [ystrings..., "t"],
+                                        # TODO: degrevlex
+                                        ordering=:lex)
+>>>>>>> 81fa69c82051d435531b749fe1e06e2dbc5675de
     t = evalvars[end]
 
     G = GroebnerEvaluator(It, eval_ring)
@@ -30,12 +39,24 @@ function contains_randomized(FF::RationalFunctionField, elem)
     p = generate_point(G)
     
     gb = evaluate(G, p)
+<<<<<<< HEAD
     elem = idealize_and_eval_element(elem, eval_ring, p)
         
     println( gb )
     println( typeof(first(gb)) )
     println( elem , typeof(elem) )    
     println(parent(elem) == parent(gb[1]))
+=======
+
+    # TODO: make a function ratfunc -> poly, and use it here and in generators_to_ideal
+    x = evaluate(elem, p)
+        
+    println( gb )
+    println( typeof(first(gb)) )
+    
+    # TODO: not needed
+    gb = filter(f -> degree(f, t) == 0, gb)
+>>>>>>> 81fa69c82051d435531b749fe1e06e2dbc5675de
 
     gb = filter(f -> degree(f, t) == 0, gb)
         
