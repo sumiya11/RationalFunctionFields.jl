@@ -34,17 +34,23 @@ function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
             for f in G.underlying_ideal
          ]
     
-    # @info "" first(Is) parent(first(Is)) base_ring(first(Is))
-    # @info "" G.ground G.eval_ring G.coeff_ring
-    
     Is = [
             change_base_ring(base_ring(G.eval_ring), f, parent=G.eval_ring)
             for f in Is
     ]
 
-    ideal = Singular.Ideal(G.eval_ring, Is)
-    gb = collect(gens(Singular.std(ideal, complete_reduction=true)))
     
+    ideal = Singular.Ideal(G.eval_ring, Is)
+
+    # gb = collect(gens(Singular.std(ideal, complete_reduction=true)))
+    gb = collect(gens(GroebnerBasis.f4(ideal, reducegb=1)))
+
+    gb = sort(gb, by=collect ∘ AbstractAlgebra.exponent_vectors)
+   
+    normalize(f) = !isconstant(f) ? f * inv(leading_coefficient(f)) : f
+
+    gb = map(normalize, gb)    
+
     gb
 end
 
@@ -63,14 +69,8 @@ function generate_point(G::GroebnerEvaluator)
 end
 
 function AbstractAlgebra.base_ring(G::GroebnerEvaluator)
-    return G.ground
+    G.ground
 end
-
-
-
-
-
-
 
 
 

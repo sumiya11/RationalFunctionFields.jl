@@ -70,14 +70,14 @@ end
     ]
 
     I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(set)
-    eval_ring, = Singular.PolynomialRing(FF, ystrings)
+    eval_ring, = Sing.PolynomialRing(FF, ystrings)
     G = GroebnerEvaluator(I, eval_ring, R, ground)
     npolys, ncoeffs = discover_groebner_structure(G)
 
-    @test npolys == 3 && ncoeffs == 8
+    @test npolys == 3 && sum(ncoeffs) == 8
 
     # over GF
-    FF = Sing.GF(2^31-1)
+    FF = Sing.N_ZpField(2^31-1)
 
     R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
     set = [
@@ -85,22 +85,19 @@ end
            (x1*x2) // 1
     ]
     I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(set)
-    eval_ring, = Singular.PolynomialRing(FF, ystrings)
+    eval_ring, = Sing.PolynomialRing(FF, ystrings)
     G = GroebnerEvaluator(I, eval_ring, R, ground)
     
     npolys, ncoeffs = discover_groebner_structure(G)
 
-    @test npolys == 3 && ncoeffs == 8
+    @test npolys == 3 && sum(ncoeffs) == 8
 
-
-    ##### hmmm
-    # Gleb: ??
 
     R, (x, y, z) = AA.PolynomialRing(Sing.QQ, ["x", "y", "z"])
     gens = [ (x^2 - z^2) // (x + y), x*y // (x + y), 1//z, z^2 // 1 ] 
 
     I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(gens)
-    eval_ring, = Singular.PolynomialRing(Sing.QQ, ystrings)
+    eval_ring, = Sing.PolynomialRing(Sing.QQ, ystrings)
     G = GroebnerEvaluator(I, eval_ring, R, ground)
 
     npolys, ncoeffs = discover_groebner_structure(G)
@@ -125,7 +122,7 @@ end
     for (i, set) in enumerate([ set1 ])
         I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(set)
         It, t = saturate(I, Q)
-        eval_ring, = Singular.PolynomialRing(FF, [ystrings..., "t"])
+        eval_ring, = Sing.PolynomialRing(FF, [ystrings..., "t"])
         coeff_ring = basepolyring
 
         G = GroebnerEvaluator(It, eval_ring, coeff_ring, ground)
@@ -145,76 +142,87 @@ end
 
 end
 
-#=
-@testset "Groebner small tests" begin
-    
-    # AA polys, Singular.QQ
-    
-    FF = Singular.QQ
-    R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
 
-    set = [
-           (x1 + x2) // 1,
-           (x1*x2) // 1
-    ]
-    newset = new_generating_set(set, modular=false)
-
-    println(newset)
-
-
-    # AA polys, Singular.QQ + modular
-    
-    newset = new_generating_set(set)
-
-    println(newset) 
-
-end
-=#
-
-@testset "Groebner main tests" begin
-    
-    # AA polys, Singular.QQ
-
-    FF = Singular.QQ
-    R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
-    set = [
-           (x1 + x2) // 1,
-           x1*x2 // 1
-    ]
-
-    newset = new_generating_set(set)
-    
-    println( AA.parent(newset[1]) )
-    println( AA.base_ring(newset[1]) )
-    println( AA.base_ring(AA.base_ring(newset[1])) )
-    println( typeof(AA.base_ring(AA.base_ring(AA.base_ring(newset[1]))) ))
-
+function test_groebner_inclusion(set, ismodular)
+    newset = new_generating_set(set, modular=ismodular)
 
     Is, _, _, yoverxs, basepolyrings, _ =  aa_ideal_to_singular(newset)
-    
-    Rs, (xs1, xs2) = Sing.PolynomialRing(FF, ["x1", "x2"])
-    # Gleb: why is this again here?
-    sets = [
-        (xs1 + xs2) // 1,
-        xs1*xs2 // 1
-    ]
-    i, yoverx2, basepolyring2, nvariables2, ground2, ystrings2, Q2 = generators_to_ideal(sets)
-    
+    i, yoverx2, basepolyring2, nvariables2, ground2, ystrings2, Q2 = generators_to_ideal(set)
     Fs = AA.base_ring(basepolyrings)
     is = [
           AA.map_coefficients(c -> AA.change_base_ring(Fs, c, parent=basepolyrings), f) for f in i
     ]
     is = map(c -> AA.change_base_ring(AA.base_ring(yoverxs), c, parent=yoverxs), is)
 
-
     I = Sing.Ideal(yoverxs, Is)
-    i = Sing.Ideal(yoverxs, is)
-    
-    
-    println(I)
-    println(i)
 
-    println(Sing.contains(I, i))
+    println(I)
+
+    for i in is
+        i = Sing.Ideal(yoverxs, i)
+        @test Sing.contains( I , i )
+    end
+        
+end
+
+function test_field_inclusion(set, ismodular)
+    FF = RationalFunctionField(set)    
+
+    for x in set
+        print( contains_randomized(FF, x) )
+    end
+end
+
+
+@testset "Groebner main tests" begin
+    
+
+    FF = Sing.QQ
+    R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
+    set1 = [
+           (x1 + x2) // 1,
+           x1*x2 // 1
+    ]
+
+    set2 = [
+            (x1^4 + x2^4) // 1,
+            (x1^3 + x2^3) // 1,
+            (x1^2 + x2^2) // 1
+    ]
+    
+    for set in [set1, set2]
+        for ifmodular in [true, false]
+            test_groebner_inclusion(set, ifmodular)
+            test_field_inclusion(set, ifmodular)
+        end
+    end
+    
+    R, (x1, x2, x3) = AA.PolynomialRing(FF, ["x1", "x2", "x3"])
+    # syzygy computation error inside Singular ?
+    set3 = [
+            (x1 + x2 + x3) // 1,
+            (x3 + 2) // (x1 + 1)
+    ]
+    
+    set4 = [
+            (x1*x2) // (1),
+            1 // (x1 + x2 + x3),
+            (2x2 + 3) // 4
+    ]
+    set5 = [
+            (x1 + x2)^2 // 1,
+            (x1 + x3)^2 // 1,
+            (x2 + x3)^2 // 1
+    ]
+    
+    for set in [set4]
+        for ifmodular in [true]
+            test_groebner_inclusion(set, ifmodular)
+            test_field_inclusion(set, ifmodular)
+        end
+    end
+
+
 end
 
 

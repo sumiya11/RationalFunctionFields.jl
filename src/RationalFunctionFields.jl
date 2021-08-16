@@ -6,7 +6,7 @@ module RationalFunctionFields
     using Logging
 
     using AbstractAlgebra
-    import AbstractAlgebra: QQ, divexact, symbols
+    import AbstractAlgebra: QQ, divexact, symbols, leading_coefficient, isconstant
     import AbstractAlgebra: coeffs, change_base_ring, gens, base_ring, map_coefficients
     import AbstractAlgebra.Generic
     import AbstractAlgebra.Generic: Frac, MPoly
@@ -17,7 +17,9 @@ module RationalFunctionFields
     import Singular
     import Singular: std, Ideal
     import Singular: libSingular
-    import Singular: spoly, n_Q
+    import Singular: spoly, n_Q, ordering_c, ordering_lp
+    
+    import GroebnerBasis
 
     include("myeval.jl")
     include("parse.jl")

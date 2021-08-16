@@ -20,7 +20,7 @@ function rational_reconstruction(a::I, m::I) where {I<:Union{Int, BigInt}}
 
     a = mod(a, m)
     if a == 0 || m == 0
-        return AbstractAlgebra.QQ(0, 1)
+        return Singular.QQ(0, 1)
     end
     if m < 0
         m = -m
@@ -29,7 +29,7 @@ function rational_reconstruction(a::I, m::I) where {I<:Union{Int, BigInt}}
         a = m - a
     end
     if a == 1
-        return AbstractAlgebra.QQ(1, 1)
+        return Singular.QQ(1, 1)
     end
     bnd = sqrt(float(m) / 2)
 
@@ -46,7 +46,7 @@ function rational_reconstruction(a::I, m::I) where {I<:Union{Int, BigInt}}
     r = V[3] * sign(V[2])
     # changed from `<= bnd` to `<= m / bnd`
     if t <= m / bnd && gcd(r, t) == 1
-        return AbstractAlgebra.QQ(r, t)
+        return Singular.QQ(r, t)
     end
 
     throw(DomainError(
@@ -73,6 +73,10 @@ end
 
 function rational_reconstruction(A::Array, m)
     map(c -> rational_reconstruction(c, m), A)
+end
+
+function rational_reconstruction(f::Singular.n_Zp, m)
+    rational_reconstruction(BigInt(Int(f)), m)
 end
 
 #------------------------------------------------------------------------------

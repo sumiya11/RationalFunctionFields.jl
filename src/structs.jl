@@ -16,16 +16,13 @@ end
 
 function contains_randomized(FF::RationalFunctionField, elem)
     # TODO: merge into a funuction
-    I, yoverx, basepolyring, nvariables, ground, ystrings, Q = generators_to_ideal(FF.generating_set)
-    It, t = saturate(I, Q)
-
-    @info "" yoverx basepolyring ground
+    It, yoverx, basepolyring, nvariables, ground, ystrings, Q, t = generators_to_saturated_ideal(FF.generating_set)
 
     # Estimating the largest degree of a coeff in the Groebner basis
     eval_ring, evalvars = Singular.PolynomialRing(
-                                        ground,
-                                        [ystrings..., "t"],
-                                        ordering=:lex)
+                              ground,
+                              [ystrings..., "t"],
+                              ordering=ordering_lp(nvariables)*ordering_c())
     t = evalvars[end]
 
     G = GroebnerEvaluator(It, eval_ring)
@@ -33,38 +30,34 @@ function contains_randomized(FF::RationalFunctionField, elem)
     p = generate_point(G)
     
     gb = evaluate(G, p)
-    x = evaluate(elem, p)
+    elem = idealize_and_eval_element(elem, eval_ring, p)
         
     println( gb )
     println( typeof(first(gb)) )
-    
-    gb = filter(f -> degree(f, t) == 0, gb)
+    println( elem , typeof(elem) )    
+    println(parent(elem) == parent(gb[1]))
 
-    println( gb )
-    println( x, " :: ", typeof(x) )
+    gb = filter(f -> degree(f, t) == 0, gb)
+        
+    println(gb)
     
-    i = Singular.Ideal(eval_ring, x)
+    i = Singular.Ideal(eval_ring, elem)
     I = Singular.Ideal(eval_ring, gb)
 
-    return Singular.contains(I, numerator(elem) - x * denominator(elem))
+    println(Singular.std(I))
     
+    return Singular.contains(I, i)
 end
 
 
 function contains_using_groebner(FF::RationalFunctionField, elem)
-    # elem = A // B
-    A, B = numerator(elem), denominator(elem)
     
-    Is, yoverx, basepolyring, yoverxs, basepolyrings, fracbases = aa_ideal_to_singular(FF.groebner_ideal)
-    
-    Ay = change_base_ring(basepolyring, A, parent=yoverx)
-    By = change_base_ring(basepolyring, B, parent=yoverx)
-    f = change_base_ring(base_ring(yoverxs), A * By - Ay * B, parent=yoverxs)  
+    Is, yoverx, basepolyring, yoverxs, basepolyrings = groebner_ideal_to_singular(FF.groebner_ideal)
+       
+    f = idealize_element(elem, basepolyring, basepolyrings, yoverx, yoverxs)
     
     fs = Ideal(yoverxs, f)
     Is = Ideal(yoverxs, Is)
-    
-    println( FF.groebner_coeffs )
 
     return Singular.contains(Is, fs)
 end
