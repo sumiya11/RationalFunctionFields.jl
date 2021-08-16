@@ -25,6 +25,7 @@ function contains_randomized(FF::RationalFunctionField, elem)
     eval_ring, evalvars = Singular.PolynomialRing(
                               ground,
                               [ystrings..., "t"],
+                              # Gleb: why and what is this? To discuss
                               ordering=ordering_lp(nvariables)*ordering_c())
     t = evalvars[end]
 
@@ -35,17 +36,9 @@ function contains_randomized(FF::RationalFunctionField, elem)
     gb = evaluate(G, p)
     elem = idealize_and_eval_element(elem, eval_ring, p)
 
-    println( gb )
-    println( typeof(first(gb)) )
-    println( elem , typeof(elem) )
-    println(parent(elem) == parent(gb[1]))
-            
-    i = Singular.Ideal(eval_ring, elem)
+    @info "Groebner basis is $gb"
     I = Singular.Ideal(eval_ring, gb)
-
-    println(Singular.std(I))
-
-    return Singular.contains(I, i)
+    return iszero(Singular.reduce(elem, GroebnerBasis.f4(I)))
 end
 
 
