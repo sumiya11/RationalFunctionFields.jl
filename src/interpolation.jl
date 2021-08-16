@@ -8,12 +8,12 @@ function lagrange_interpolant(R, xs, i)
         j == i ? 1 : (x - xs[j])
         for j in 1:n
     ))
-
+    
     c = prod(
         j == i ? 1 : (xs[i] - xs[j])
         for j in 1:n
     )
-    
+
     AbstractAlgebra.map_coefficients(t -> t // c, f)
 end
 
@@ -21,9 +21,9 @@ end
 # returns :: AbstractAlgebra.Generic.Poly
 function interpolate_polynomial(R, xs, ys)
 
-    @assert typeof(xs[1]) == typeof(ys[1])
-    @assert typeof(xs[1]) == AbstractAlgebra.elem_type(AbstractAlgebra.base_ring(R))
-
+    # @assert typeof(xs[1]) == typeof(ys[1])
+    # @assert typeof(xs[1]) == AbstractAlgebra.elem_type(AbstractAlgebra.base_ring(R))
+    
     f = sum(
         ys[i] * lagrange_interpolant(R, xs, i)
         for i in 1:length(xs)
@@ -216,7 +216,8 @@ function backward_kronecker(
         backward_kronecker(denominator(f), target_ring, maxexp)
 end
 
-function generate_kronecker_points(ground, npoints, maxexp, nvariables)
+function generate_kronecker_points(ground, maxexp, nvariables)
+    npoints = (maxexp + 1)^nvariables + 2
     xs = [rand(ground) for _ in 1:npoints]
     points = [
         [ ground(j)^i for i in [ (maxexp + 1)^k for k in 0:(nvariables - 1) ] ]

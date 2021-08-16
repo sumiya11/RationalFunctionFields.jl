@@ -1,4 +1,5 @@
 
+
 mutable struct RationalFunctionField
     generating_set       # present always
     groebner_coeffs      # lazy field, not to be addressed directly
@@ -56,7 +57,8 @@ function contains_using_groebner(FF::RationalFunctionField, elem)
 
     fs = Ideal(yoverxs, f)
     Is = Ideal(yoverxs, Is)
-
+    
+    println(Is, " | ", fs)
     return Singular.contains(Is, fs)
 end
 
@@ -102,4 +104,25 @@ function contains(FF::RationalFunctionField, elem; proved=true)
 end
 
 
-###############################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

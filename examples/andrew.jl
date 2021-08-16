@@ -11,7 +11,7 @@ Logging = RationalFunctionFields.Logging
 logger = Logging.SimpleLogger(stderr, Logging.Debug)
 Logging.global_logger(logger)
 
-set = load_generators("../data/Goodwin.txt")
+set = load_generators("../data/Andrew2.txt")
 
 gb = new_generating_set(set)
 

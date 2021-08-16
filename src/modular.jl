@@ -54,6 +54,8 @@ function rational_reconstruction(a::I, m::I) where {I<:Union{Int, BigInt}}
     ))
 end
 
+### Several ad hoc functions for reconstruction
+
 function rational_reconstruction(f::Nemo.gfp_elem, m)
     rational_reconstruction(BigInt(f.data), m)
 end
@@ -81,6 +83,9 @@ end
 
 #------------------------------------------------------------------------------
 
+"""
+    Coerces the given rational field element into the given finite field
+"""
 function modular_reduction(x, field)
     n, d = field(Int(numerator(x))), field(Int(denominator(x)))
     if iszero(d)
@@ -90,6 +95,8 @@ function modular_reduction(x, field)
     end
     n // d
 end
+
+### Reduction ad hoc functions
 
 function modular_reduction(f::Union{MPoly, fmpq_mpoly}, field)
     map_coefficients(c -> modular_reduction(c, field), f)

@@ -39,10 +39,12 @@ end
 
 
 """
+    Computes the Grobner basis of the given ideal at several random points to 
+    estimate the variable-wise degrees of the coefficiet polynomials by applying
+    univariate interpolation over each variable
+    
     Returns an array of degrees expected to occure in Groebner basis,
     i-th array entry corresponds to coeff degree with respect to i-th variable
-
-    Gleb: how exactly is array built?
 """
 function discover_groebner_degrees(G::GroebnerEvaluator)
     # staring from small amount of interpolation points 
@@ -83,16 +85,13 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
             
             # TODO: sep into a function
             # Gleb: how about broadcast: xs[k] = sequence_gen.^(1:n)  ?
+            # Alex: this won't work..
             for k in 1:n
                 xs[k][varidx] = rand(ground)
             end
             
-            # Gleb: why not @debug ?
+            ys = map(c -> julia.(c), map(field_generators, map(G, xs)))            
 
-            # TODO: do this more effective
-            # Gleb: What is this ?!
-            ys = map(c -> julia.(c), map(field_generators, map(G, xs)))
-            
             all_success = true
             for (j, deg) in enumerate(predicted_degrees)
                 xi = [ x[varidx] for x in xs ]
@@ -102,7 +101,9 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
                 interpolated = lightring(0)
 
                 try
-                    interpolated = interpolate_rational_function(lightring, xi, yi)
+                    interpolated = interpolate_rational_function(
+                                                     lightring, xi, yi
+                    )
                 catch
                     @warn "rational interpolation failed =("
                     all_success = false
@@ -110,7 +111,6 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
                 end
 
                 predicted_degrees[j] = sum(applytofrac(degree, interpolated))
-                
                 all_success = all_success && check_success(predicted_degrees[j])
             end
 
@@ -131,17 +131,29 @@ end
 """
     Returns a plain array of coefficients of the given groebner basis
 """
+### AA.coefficients would be better
 function field_generators(groebner_generators)
     generators = []
     for poly in groebner_generators
         # Gleb: push!(generators, coefficients(poly)...) should work
-        for c in coefficients(poly)
-            push!(generators, c)
-        end
+        # Alex: thank you !
+        push!(generators, coefficients(poly)...)
     end
     generators
 end
 
+"""
+    Returns an ideal of polynomials in ys of form
+        < Fyi * Qx - Fxi * Qy >
+    for each Fi in genset
+    Here Q stands for the lcm of the denominators occuring in genset.
+
+    So that generators of the resulting ideal are polynomials,
+    but not fractions
+
+    Saturates the ideal with Q by adding 1 - Qt to its generators
+
+"""
 function generators_to_saturated_ideal(genset)
     basepolyring = parent(numerator( first(genset) ))
     nvariables = length(gens(basepolyring))
@@ -167,27 +179,25 @@ function generators_to_saturated_ideal(genset)
     Qx = Q
     Qy = change_base_ring(basepolyring, Q, parent=yoverx)
 
-    # Gleb: to cancel Fyi and Qy by their gcd
+    # Gleb: to cancel Fyi and Qy by their gcdi
+    # oops
     I = [
         Fyi * Qx - Fxi * Qy
         for (Fyi, Fxi) in zip(Fx, Fy)
     ]
+    
+    println(I)
 
     I, t = saturate(I, Q)
 
-    I, yoverx, basepolyring, nvariables, ground, ystrings, Q, t
+    (I=I, yoverx=yoverx, basepolyring=basepolyring, 
+     nvariables=nvariables, ground=ground, ystrings=ystrings,
+     Q=Q, t=t)
 end
 
 
 
-
-"""
-    Generates the "good" ideal for the given generators set, i.e ideal of form:
-    I = <  >
-    
-    Returns the generated ideal and some auxiliary info
-    
-"""
+# TODO: to delete
 # Gleb: As far as I see, this function is always followed by saturation (and this makes perfect sense) 
 # I suggest to do the saturation right here
 function generators_to_ideal(genset)
@@ -259,9 +269,6 @@ function naive_new_generating_set(genset)
 
     It, t = saturate(I, Q)
     
-    # TODO: ask : why could this naive computation fail for lex ordering 
-    #             and work fine for degrevlex
-    # Gleb: degrevlex is typically much more efficient, just common wisdom (I do not have a good concise explanation)
     basepolyrings, = Singular.AsEquivalentSingularPolynomialRing(basepolyring)
     yoverxs,  = Singular.PolynomialRing(basepolyrings, [ystrings..., "t"])
 
@@ -430,8 +437,6 @@ function new_generating_set(genset; modular=true)
             .
     =#
     
-    ### AA polys !!!
-    
     modulo = 2^31-1
     FF = Singular.N_ZpField(modulo)
     
@@ -440,35 +445,37 @@ function new_generating_set(genset; modular=true)
     end
 
     # Generating "good" ideal and saturating it
-    It, yoverx, basepolyring, nvariables, ground, ystrings, Q, t = generators_to_saturated_ideal(genset)
-    
+    ideal_info = generators_to_saturated_ideal(genset)
+    It, yoverx, basepolyring, nvariables, ground, ystrings, Q, t = ideal_info.I, ideal_info.yoverx, ideal_info.basepolyring, ideal_info.nvariables, ideal_info.ground, ideal_info.ystrings, ideal_info.Q, ideal_info.t
+
+
     # Estimating the largest degree of a coeff in the Groebner basis 
     eval_ring, evalvars = Singular.PolynomialRing(
                                         ground,
                                         [ystrings..., "t"],
                           ordering=ordering_lp(nvariables+1)*ordering_c())
-    t = evalvars[end]
     
     G = GroebnerEvaluator(It, eval_ring, basepolyring, ground)
 
     true_structure = discover_groebner_structure(G)
     
-    println( "Groebner structure " , true_structure )
+    @info "Groebner true structure" true_structure 
     
     exponents = discover_groebner_degrees(G)
     maxexp = maximum(exponents) + 1
-    # maxexp = sum(exponents)
 
-    println( "Maximal exponents per variables: $exponents" )
-    println( "The largest: $maxexp" )
+    @info "Maximal exponents per variables: $exponents"
+    @info "The largest: $maxexp"
 
     # Building a Kronecker substitution
 
     # why do I even pass npoints to generate_kron...
-    npoints = (maxexp + 1)^nvariables + 2
-    xs, points = generate_kronecker_points(ground, npoints, maxexp, nvariables)
-    println( "The total number of sampling points: $npoints" )
+    xs, points = generate_kronecker_points(ground, maxexp, nvariables)
+    npoints = length(points)
+
+    @info "The total number of sampling points: $npoints"
     
+    @info "Evaluating Groebner bases..."
 
     # Evaluating Groebner bases of specializations
     gbs = [
@@ -476,22 +483,18 @@ function new_generating_set(genset; modular=true)
         for point in points
     ]
     
+    # Ensure bases are of same shape
     for gb in gbs
         if groebner_structure(gb) != true_structure
-            println(gb)
+            println( gb )
             @warn "beda"
             @assert false
         end
     end
 
-    gbs_no_t = []
-    for gb in gbs
-        push!(gbs_no_t, filter(f -> degree(f, t) == 0, gb))
-    end
-    gbs = gbs_no_t
-
-    
     # Performing univariate interpolation
+
+    @info "Started interpolation.."
     uni, = AbstractAlgebra.PolynomialRing(ground, "x")
 
     ys = []
@@ -510,7 +513,8 @@ function new_generating_set(genset; modular=true)
 
     answer_e = [Dict() for _ in 1:length(gbs[1])]
     for (j, gg) in enumerate(gbs[1])
-
+        
+        @info "Interpolating $j th polynomial coeffs.."
         for ev in exponent_vectors(gg)
 
             yssmall = map(julia, [
@@ -530,6 +534,8 @@ function new_generating_set(genset; modular=true)
     end
 
     # Reconstruct the final Groebner basis and new generators
+    
+    @info "Reconstructing.."
 
     gb = []
     R, = AbstractAlgebra.PolynomialRing(

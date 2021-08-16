@@ -179,7 +179,6 @@ end
     ground = Sing.GF(2^31 - 1)
     R, (a, b, c) = AA.PolynomialRing(ground, ["a", "b", "c"])
     
-    npoints = 100
     maxexp = 10
     nvariables = 3    
 
@@ -193,7 +192,7 @@ end
         b^10
     ]
     
-    xs, points = generate_kronecker_points(ground, npoints, maxexp, nvariables)
+    xs, points = generate_kronecker_points(ground, maxexp, nvariables)
 
     for poly in polys 
         for (point, x) in zip(points, xs)

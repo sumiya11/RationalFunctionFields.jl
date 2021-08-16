@@ -19,15 +19,8 @@ Logging.global_logger(logger)
     ]
 
     newset = new_generating_set(set)
-
+    
     println(newset)
-    println(typeof(newset[1]))
-    println("##############")
-
-    newset = new_generating_set(set, modular=false)
-
-    println(newset)
-    println(typeof(newset[1]))
     println(field_generators(newset))
 
 end

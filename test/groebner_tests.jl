@@ -1,6 +1,7 @@
 using .RationalFunctionFields: new_generating_set, generators_to_ideal, GroebnerEvaluator, 
                          discover_groebner_structure, discover_groebner_degrees, saturate,
-                         naive_new_generating_set, field_generators, aa_ideal_to_singular 
+                         naive_new_generating_set, field_generators, aa_ideal_to_singular,
+                         RationalFunctionField, contains_randomized
 
 logger = Logging.SimpleLogger(stderr, Logging.Debug)
 Logging.global_logger(logger)
