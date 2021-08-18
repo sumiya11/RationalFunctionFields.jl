@@ -6,6 +6,7 @@ module RationalFunctionFields
     using Logging
 
     using AbstractAlgebra
+    import AbstractAlgebra: exponent_vectors, setcoeff!
     import AbstractAlgebra: QQ, divexact, symbols, leading_coefficient, isconstant
     import AbstractAlgebra: coeffs, change_base_ring, gens, base_ring, map_coefficients
     import AbstractAlgebra.Generic
@@ -21,13 +22,16 @@ module RationalFunctionFields
     
     import GroebnerBasis
 
+    import Primes
+
+
     include("myeval.jl")
     include("parse.jl")
-    # include("modular.jl")
     include("utils.jl")
     include("interpolation.jl")
     include("modular.jl")
     include("groebner.jl")
+    # include("inclusion.jl")
     include("main.jl")
     include("structs.jl")
 

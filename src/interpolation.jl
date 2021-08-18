@@ -70,7 +70,10 @@ function interpolate_rational_function(R, xs, ys)
 
     x = AbstractAlgebra.gen(R)
 
-    g = interpolate_polynomial(R, xs, ys)
+    # g = interpolate_polynomial(R, xs, ys)
+   
+    g = Nemo.interpolate(R, xs, ys)
+
     m = prod(x - xs[i] for i in 1:length(xs))
     
     polynomial_reconstruction(g, m)
@@ -217,6 +220,16 @@ function backward_kronecker(
 end
 
 function generate_kronecker_points(ground, maxexp, nvariables)
+    npoints = (maxexp + 1)^nvariables + 2
+    xs = [rand(ground) for _ in 1:npoints]
+    points = [
+        [ ground(j)^i for i in [ (maxexp + 1)^k for k in 0:(nvariables - 1) ] ]
+          for j in xs
+    ]
+    xs, points
+end
+
+function generate_good_kronecker_points(ground, maxexp, nvariables)
     npoints = (maxexp + 1)^nvariables + 2
     xs = [rand(ground) for _ in 1:npoints]
     points = [

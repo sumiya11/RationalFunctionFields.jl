@@ -11,7 +11,7 @@ function load_generators(filepath)
         lines = map(strip, readlines(inputs))
     end
 
-    @info "Loading $filepath"
+    @info "Loading from $filepath"
     
     strings = map(String, split(lines[1], ", "))
 
@@ -31,7 +31,7 @@ function load_generators(filepath)
         append!(generators, [ g // S(polys[1]) for g in polys[2:end] ])
     end
        
-    @info "loaded $(length(generators)) from $filepath"
+    @info "loaded $(length(generators)) generators from $filepath"
     
     return generators
 end

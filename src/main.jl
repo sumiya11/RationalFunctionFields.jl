@@ -19,10 +19,11 @@
 function discover_groebner_structure(G::GroebnerEvaluator)
     # generate two substitution points for coeffs of G
     p1, p2 = generate_point(G), generate_point(G)
-        
+    
+    println("here!")
     # compute two groebner bases at that point
     gb1, gb2 = evaluate(G, p1), evaluate(G, p2)
-    
+    println("there!")    
     # obtain general info
     structure1 = groebner_structure(gb1)
     structure2 = groebner_structure(gb2)
@@ -65,14 +66,12 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
     # idx --> max degree
     answer = zeros(Int, nxs)    
 
-    @debug "nvariables " nxs
-
     for varidx in 1:nxs
         n = initial_n   
         predicted_degrees = [ n for _ in 1:ncoeffs ]
         all_success = false
         
-        @debug "handling variable " varidx
+        # @debug "handling variable " varidx
         
         while !all_success
             
@@ -114,7 +113,7 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
                 all_success = all_success && check_success(predicted_degrees[j])
             end
 
-            @debug "for $n points and $varidx variable degrees are " predicted_degrees
+            # @debug "for $n points and $varidx variable degrees are " predicted_degrees
 
             n = n * 2
         end
@@ -183,11 +182,9 @@ function generators_to_saturated_ideal(genset)
     # oops
     I = [
         Fyi * Qx - Fxi * Qy
-        for (Fyi, Fxi) in zip(Fx, Fy)
+        for (Fyi, Fxi) in zip(Fy, Fx)
     ]
     
-    println(I)
-
     I, t = saturate(I, Q)
 
     (I=I, yoverx=yoverx, basepolyring=basepolyring, 
@@ -228,7 +225,7 @@ function generators_to_ideal(genset)
     # Gleb: to cancel Fyi and Qy by their gcd
     I = [
         Fyi * Qx - Fxi * Qy
-        for (Fyi, Fxi) in zip(Fx, Fy)
+        for (Fyi, Fxi) in zip(Fy, Fx)
     ]
     
     # Gleb: how about a named tuple here? Impossible to remember the order
@@ -312,8 +309,6 @@ function idealize_and_eval_element(elem, eval_ring, point)
     A, _ = change_parent_ring(A, eval_ring)
     B, _ = change_parent_ring(B, eval_ring)
     
-    println( A )
-
     Ae = evaluate(A, point)
     Be = evaluate(B, point)
 
@@ -422,59 +417,40 @@ end
 
 
 """
-    does something
-
-    genset: an array of AbstractAlgebra polynomials over AbstractAlgebra.QQ
-
-    Currently supports 
-    AA polynomials + Singular QQ / N_ZpField coefficients
+    h
 """
-function new_generating_set(genset; modular=true)
-
-    #=
-        TODO:
-            . ensure evaluated generators are of the same structure
-            .
-    =#
+function new_generating_set_backend(genset)
     
-    modulo = 2^31-1
-    FF = Singular.N_ZpField(modulo)
-    
-    if modular
-        genset = modular_reduction(genset, FF)
-    end
-
     # Generating "good" ideal and saturating it
     ideal_info = generators_to_saturated_ideal(genset)
     It, yoverx, basepolyring, nvariables, ground, ystrings, Q, t = ideal_info.I, ideal_info.yoverx, ideal_info.basepolyring, ideal_info.nvariables, ideal_info.ground, ideal_info.ystrings, ideal_info.Q, ideal_info.t
 
 
-    # Estimating the largest degree of a coeff in the Groebner basis 
+    # Estimating the largest degree of a coeff in the Groebner basis
     eval_ring, evalvars = Singular.PolynomialRing(
                                         ground,
                                         [ystrings..., "t"],
                           ordering=ordering_lp(nvariables+1)*ordering_c())
-    
+
     G = GroebnerEvaluator(It, eval_ring, basepolyring, ground)
 
     true_structure = discover_groebner_structure(G)
-    
-    @info "Groebner true structure" true_structure 
-    
+
+    @info "Groebner structure" true_structure
+
     exponents = discover_groebner_degrees(G)
     maxexp = maximum(exponents) + 1
 
     @info "Maximal exponents per variables: $exponents"
     @info "The largest: $maxexp"
-
+    
     # Building a Kronecker substitution
 
-    # why do I even pass npoints to generate_kron...
     xs, points = generate_kronecker_points(ground, maxexp, nvariables)
     npoints = length(points)
 
     @info "The total number of sampling points: $npoints"
-    
+
     @info "Evaluating Groebner bases..."
 
     # Evaluating Groebner bases of specializations
@@ -482,7 +458,7 @@ function new_generating_set(genset; modular=true)
         G(point)
         for point in points
     ]
-    
+
     # Ensure bases are of same shape
     for gb in gbs
         if groebner_structure(gb) != true_structure
@@ -493,7 +469,6 @@ function new_generating_set(genset; modular=true)
     end
 
     # Performing univariate interpolation
-
     @info "Started interpolation.."
     uni, = AbstractAlgebra.PolynomialRing(ground, "x")
 
@@ -508,12 +483,12 @@ function new_generating_set(genset; modular=true)
         end
 
     end
-    
+
     # TODO: reconsider this scary cycle
 
     answer_e = [Dict() for _ in 1:length(gbs[1])]
     for (j, gg) in enumerate(gbs[1])
-        
+
         @info "Interpolating $j th polynomial coeffs.."
         for ev in exponent_vectors(gg)
 
@@ -521,21 +496,21 @@ function new_generating_set(genset; modular=true)
                 get(y[j], ev, ground(0))
                 for y in ys
             ])
-            
+
             f = interpolate_rational_function(
                     uni,
                     xs,
                     yssmall
             )
-            
             answer_e[j][ev] = backward_kronecker(f, basepolyring, maxexp)
 
         end
     end
 
     # Reconstruct the final Groebner basis and new generators
-    
-    @info "Reconstructing.."
+
+    @info "Reconstructing polynomials.."
+    # TODO : speed up this part
 
     gb = []
     R, = AbstractAlgebra.PolynomialRing(
@@ -552,12 +527,113 @@ function new_generating_set(genset; modular=true)
         push!(gb, finish(polybuilder))
     end
 
-    if modular
-        gb = rational_reconstruction(gb, BigInt(modulo))
+    gb
+end
+
+
+"""
+    Checks if the good ideal composed of the given generators
+    contains in the given groebner_basis ideal
+"""
+function check_ideal_inclusion(groebner_basis, generators)
+    Is, yoverx, basepolyring, yoverxs, basepolyrings = groebner_ideal_to_singular(groebner_basis)
+    Is = Ideal(yoverxs, Is)
+
+    for f in generators
+        f = idealize_element(f, basepolyring, basepolyrings, yoverx, yoverxs)
+
+        fs = Ideal(yoverxs, f)
+
+        if !Singular.contains(Is, fs)
+            return false
+        end
     end
 
-    return gb
+    return true
 end
+
+
+
+"""
+    does something
+
+    genset: an array of AbstractAlgebra polynomials over AbstractAlgebra.QQ
+
+    Currently supports 
+    .    AA polynomials with Singular QQ / N_ZpField coefficients
+"""
+function new_generating_set(initial_genset; modular=true)
+
+    #=
+        TODO:
+            . ensure evaluated generators are of the same structure
+            .
+    =#
+    
+    moduli = [ 2^30+3 ]
+
+    groebner_bases = []
+    
+    while true
+        
+        modulo = last(moduli)
+        FF = Singular.N_ZpField(modulo)
+
+        genset = initial_genset
+        if modular
+            @info "Modular reduction.."
+            genset = modular_reduction(initial_genset, FF)
+        end
+
+        gb = new_generating_set_backend(genset)
+        push!(groebner_bases, gb)
+
+        if modular
+            @info "CRT reconstruction.."
+                
+            # let us just hope no coeff vanishes under in a small field
+            gb = CRT_reconstruction(groebner_bases, moduli)
+
+            @info "Rational reconstruction.."
+            gb = rational_reconstruction(gb, BigInt(prod(moduli)))
+        end
+
+        @info "Running correctness checks.."
+        isideal = check_ideal_inclusion(gb, initial_genset)
+        
+        @info "Done.\n Is correct ideal: $isideal"
+
+        if isideal ### && isfield ???
+            return gb
+        end
+        
+        @warn "Computed *incorrect* \n$gb \nmodulo $modulo"
+        break
+
+        push!(moduli, Primes.nextprime(modulo))
+    end
+    
+    @error "how did we end up like this?.."
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

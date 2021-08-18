@@ -119,6 +119,113 @@ function modular_reduction(arr::Array, field)
     map(f -> modular_reduction(f, field), arr)
 end
 
+#------------------------------------------------------------------------------
+
+"""
+    Chinese remainder algorithm
+    (Eucleadean one. Ii there a Gauss version of the algorithm btw?..)
+"""
+function CRT(moduli, remainders)
+    """
+    The function implements the CR Algorithm mentioned as Algorithm 5.4
+    in  'Modern Computer Algebra', 2nd edition,
+        Joachim von zur Gathen and Jurgen Gerhard
+    """
+    
+    m = prod(moduli)
+    
+    ans = BigInt(0)
+    
+    for (i, (mi, vi)) in enumerate(zip(moduli, remainders))
+        mi_hat = divexact(m, mi)
+        _, s, t = Nemo.gcdx(mi_hat, mi)
+        ans = mod(ans + vi * s * mi_hat, m)
+    end
+    
+    ans
+end
+
+
+"""
+    Looks cool
+    TODO
+"""
+function CRT_reconstruction(groebner_bases, moduli)
+    onegb = first(groebner_bases)
+    onepoly = first(onegb)
+    
+    basepolyring = base_ring(base_ring(onepoly))
+    yoverx = parent(onepoly)
+    
+    ystring = string.(symbols(yoverx))
+    xstring = string.(symbols(basepolyring))
+    
+    ground = AbstractAlgebra.ZZ
+    inner_ring, = AbstractAlgebra.PolynomialRing(ground, xstring)
+    outer_ring, = AbstractAlgebra.PolynomialRing(FractionField(inner_ring), ystring)
+
+    npolys = length(onegb)
+    ncoeffs = map(length, onegb)    
+
+    new_basis = []
+    
+    for (polyidx, poly) in zip(1:npolys, onegb)
+        outer_f = deepcopy(poly)
+        outer_builder = AbstractAlgebra.MPolyBuildCtx(outer_ring)
+        
+        for (outer_i, outer_e) in zip(1:ncoeffs[polyidx], exponent_vectors(poly))
+            inner_frac = coeff(poly, outer_e)
+            num_and_denom = [zero(inner_ring), zero(inner_ring)]
+
+            for (jk, locator) in enumerate([numerator, denominator])
+                inner_f = locator(inner_frac)
+                inner_builder = AbstractAlgebra.MPolyBuildCtx(inner_ring)
+            
+                for (inner_i, inner_e) in enumerate(exponent_vectors(inner_f))
+                    oldcoeffs = [ 
+                        coeff(locator(coeff(gb[polyidx], outer_e)), inner_e)
+                        for gb in groebner_bases
+                    ]
+        
+                    newcoeff = CRT(moduli, map(Int, oldcoeffs))
+                    push_term!(inner_builder, newcoeff, inner_e)
+                end
+
+                num_and_denom[jk] = finish(inner_builder)
+
+            end
+            
+            num, denom = num_and_denom
+            push_term!(outer_builder, num // denom, outer_e)
+        end    
+        
+        
+        push!(new_basis, finish(outer_builder))
+    end
+    
+    new_basis
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

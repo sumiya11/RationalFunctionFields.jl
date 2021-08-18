@@ -18,13 +18,12 @@ end
     FF = RationalFunctionField(set)
     compute_groebner!(FF)  
     
-    println( contains_using_groebner( FF, a*b // 1 ) )
-    println( contains_using_groebner( FF, (a^2 + a*b + b^2) // 1 ) )
-    
-    println( FF.groebner_ideal )
-    println( FF.groebner_coeffs )
-    
-    println(  contains_randomized(FF, a*b // 1 ) )
+    @test contains_using_groebner( FF, a*b // 1 ) 
+    @test contains_using_groebner( FF, (a^2 + a*b + b^2) // 1 ) 
+        
+    # note that may fail occasionaly
+    @test contains_randomized( FF, a*b // 1 )
+    @test contains_randomized( FF, (a^2 + b^2)^3 // 1 )
 
 end
 

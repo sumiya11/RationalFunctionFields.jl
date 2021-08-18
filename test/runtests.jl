@@ -10,6 +10,7 @@ using .RationalFunctionFields
 AA = RationalFunctionFields.AbstractAlgebra
 Sing = RationalFunctionFields.Singular
 Nemo = RationalFunctionFields.Nemo
+Primes = RationalFunctionFields.Primes
 
 @info "Testing started"
 

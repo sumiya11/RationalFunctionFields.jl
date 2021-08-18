@@ -1,7 +1,7 @@
 using .RationalFunctionFields: new_generating_set, generators_to_ideal, GroebnerEvaluator, 
                          discover_groebner_structure, discover_groebner_degrees, saturate,
                          naive_new_generating_set, field_generators, aa_ideal_to_singular,
-                         RationalFunctionField, contains_randomized
+                         RationalFunctionField, contains_randomized, check_ideal_inclusion
 
 logger = Logging.SimpleLogger(stderr, Logging.Debug)
 Logging.global_logger(logger)
@@ -13,7 +13,7 @@ Logging.global_logger(logger)
     R, (x1, x2) = AA.PolynomialRing(Sing.QQ, ["x1", "x2"])
 
     set = [
-           x1*(x1*x2) // (x1*x2)^2
+           x1 // (x1*x2)
            1 // (x1*x2)
    ]
 
@@ -24,7 +24,8 @@ Logging.global_logger(logger)
     x1, x2 = AA.gens(basepolyring)
 
     @test Q == x1*x2
-    @test I == [-y1^2*y2 + x1^2*x2, -y1*y2 + x1*x2]
+    # x1*y1*y2 + x1*x2*y1, -y1*y2 + x1*x2
+    @test I == [-x1*y1*y2 + x1*x2*y1, -y1*y2 + x1*x2]
     @test ground == Sing.QQ
     @test basepolyring == R
     @test AA.base_ring(yoverx) == basepolyring
@@ -51,15 +52,18 @@ end
     gb = naive_new_generating_set(set)
     coeffs = field_generators(gb)
 
-    @test Set(coeffs) == Set([R(-1), x1^2 + x2^2, x1*x2, R(1), -x1^2 - x2^2])
+    @test Set(coeffs) == Set([x1*x2, -x1*x2, -x1^2 - x2^2, R(1)])
 
 end
 
 
 @testset "Groebner structure tests" begin
 
+    @info "Groebner structure tests"
+
     # ogo, chto-to novoe
     FF = Sing.QQ
+    
 
     R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
 
@@ -109,6 +113,9 @@ end
 
 
 @testset "Groebner degree prediction tests" begin
+    @info "Groebner degree prediction tests"
+
+
     # now to the degree prediction tests
 
     FF = Sing.QQ
@@ -146,37 +153,44 @@ end
 
 function test_groebner_inclusion(set, ismodular)
     newset = new_generating_set(set, modular=ismodular)
+    
+    @test check_ideal_inclusion(newset, set)
 
-    Is, _, _, yoverxs, basepolyrings, _ =  aa_ideal_to_singular(newset)
-    i, yoverx2, basepolyring2, nvariables2, ground2, ystrings2, Q2 = generators_to_ideal(set)
-    Fs = AA.base_ring(basepolyrings)
-    is = [
-          AA.map_coefficients(c -> AA.change_base_ring(Fs, c, parent=basepolyrings), f) for f in i
-    ]
-    is = map(c -> AA.change_base_ring(AA.base_ring(yoverxs), c, parent=yoverxs), is)
-
-    I = Sing.Ideal(yoverxs, Is)
-
-    println(I)
-
-    for i in is
-        i = Sing.Ideal(yoverxs, i)
-        @test Sing.contains( I , i )
-    end
-        
 end
 
 function test_field_inclusion(set, ismodular)
     FF = RationalFunctionField(set)    
 
     for x in set
-        print( contains_randomized(FF, x) )
+        @test contains_randomized(FF, x)
     end
 end
 
+@testset "Groebner modular and rational are same tests" begin
+    FF = Sing.QQ
+    R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
+    set1 = [
+           (x1 + x2) // 1,
+           x1*x2 // 1
+    ]
+    set2 = [
+            (x1*x2) // (x1 + 1),
+            x2 // 1
+    ]
+
+    for set in [set1, set2]
+        rational_gb = new_generating_set(set, modular=false)
+        finite_gb = new_generating_set(set, modular=true)
+        
+        @test rational_gb == finite_gb
+    end
+
+
+end
 
 @testset "Groebner main tests" begin
     
+    @info "Groebner main tests"
 
     FF = Sing.QQ
     R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
@@ -208,23 +222,26 @@ end
     set4 = [
             (x1*x2) // (1),
             1 // (x1 + x2 + x3),
-            (2x2 + 3) // 4
+            (2x2 + 3) // 1
     ]
     set5 = [
             (x1 + x2)^2 // 1,
             (x1 + x3)^2 // 1,
             (x2 + x3)^2 // 1
     ]
-    
-    for set in [set4]
+        
+    # we want only modular here since computations over QQ
+    # are hard here
+    for (i, set) in enumerate([set3, set4, set5])
         for ifmodular in [true]
             test_groebner_inclusion(set, ifmodular)
             test_field_inclusion(set, ifmodular)
         end
     end
 
-
 end
+
+
 
 
 

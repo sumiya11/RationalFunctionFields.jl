@@ -18,10 +18,14 @@ Logging.global_logger(logger)
           ( x1^4 + x2^4 ) // 1
     ]
 
-    newset = new_generating_set(set)
+    newset1 = new_generating_set(set)
+    newset2 = new_generating_set(set, modular=false)
     
-    println(newset)
-    println(field_generators(newset))
+    println(newset1)
+    println(newset2)
+    println("#######")
+    println(field_generators(newset1))
+    println(field_generators(newset2))
 
 end
 

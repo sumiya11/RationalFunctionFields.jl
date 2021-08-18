@@ -21,12 +21,10 @@ function contains_randomized(FF::RationalFunctionField, elem)
     # TODO: merge into a funuction
     It, yoverx, basepolyring, nvariables, ground, ystrings, Q, t = generators_to_saturated_ideal(FF.generating_set)
 
-    # Estimating the largest degree of a coeff in the Groebner basis
     eval_ring, evalvars = Singular.PolynomialRing(
                               ground,
                               [ystrings..., "t"],
                               ordering=ordering_lp(nvariables)*ordering_c())
-    t = evalvars[end]
 
     G = GroebnerEvaluator(It, eval_ring)
 
@@ -34,18 +32,13 @@ function contains_randomized(FF::RationalFunctionField, elem)
 
     gb = evaluate(G, p)
     elem = idealize_and_eval_element(elem, eval_ring, p)
+    
+    @debug "Evaluated eLement is $elem"
+    @debug "Evaluated groebner basis is $gb"
 
-    println( gb )
-    println( typeof(first(gb)) )
-    println( elem , typeof(elem) )
-    println(parent(elem) == parent(gb[1]))
-            
-    i = Singular.Ideal(eval_ring, elem)
     I = Singular.Ideal(eval_ring, gb)
 
-    println(Singular.std(I))
-
-    return Singular.contains(I, i)
+    return iszero(Singular.reduce(elem, GroebnerBasis.f4(I)))
 end
 
 
@@ -58,7 +51,6 @@ function contains_using_groebner(FF::RationalFunctionField, elem)
     fs = Ideal(yoverxs, f)
     Is = Ideal(yoverxs, Is)
     
-    println(Is, " | ", fs)
     return Singular.contains(Is, fs)
 end
 

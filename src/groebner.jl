@@ -77,10 +77,12 @@ function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
     ]
     
     ideal = Singular.Ideal(G.eval_ring, Is)
-    
-    gb = GroebnerBasis.f4(ideal, reducegb=1)
+    println(ideal)    
+#    gb = GroebnerBasis.f4(ideal, reducegb=1)
+    println("why...")
     # this should never happen ideally (but it does!!)
-    if length(gens(gb)) == 1
+    #if length(gens(gb)) == 1
+    if true 
         @warn "F4 failed. Switching to Singular.std"
         gb = Singular.std(ideal, complete_reduction=true)
     end
