@@ -203,7 +203,7 @@ function backward_kronecker(
         push_term!(
             polybuilder,
             c,
-            decompose_by_degrees(e, maxexp + 1, nvariables)
+            decompose_by_degrees(e, maxexp, nvariables)
         )
     end
 
@@ -220,10 +220,10 @@ function backward_kronecker(
 end
 
 function generate_kronecker_points(ground, maxexp, nvariables)
-    npoints = (maxexp + 1)^nvariables + 2
+    npoints = (maxexp^nvariables + 2) * 2
     xs = [rand(ground) for _ in 1:npoints]
     points = [
-        [ ground(j)^i for i in [ (maxexp + 1)^k for k in 0:(nvariables - 1) ] ]
+        [ ground(j)^i for i in [ (maxexp)^k for k in 0:(nvariables - 1) ] ]
           for j in xs
     ]
     xs, points

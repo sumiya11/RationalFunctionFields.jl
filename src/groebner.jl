@@ -77,27 +77,29 @@ function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
     ]
     
     ideal = Singular.Ideal(G.eval_ring, Is)
-    println(ideal)    
-#    gb = GroebnerBasis.f4(ideal, reducegb=1)
+    @info "I am gpoing to compute GB of $ideal"
+    gb = GroebnerBasis.f4(ideal, reducegb=0, monorder=:lex)
     println("why...")
     # this should never happen ideally (but it does!!)
-    #if length(gens(gb)) == 1
-    if true 
+    @info gb
+    if length(gens(gb)) == 1
+    #if true 
+        @info gb
         @warn "F4 failed. Switching to Singular.std"
         gb = Singular.std(ideal, complete_reduction=true)
     end
 
     gb = collect(gens(gb))
     
+    ideal = Singular.Ideal(G.eval_ring, gb)
+    gb = collect(gens(Singular.std(ideal, complete_reduction=true)))
+
+    @info "After reduction $gb"
+
     if G.saturated && string(t) == "t"
         gb = filter(f -> degree(f, t) == 0, gb)
     end
     
-    #=
-    ideal = Singular.Ideal(G.eval_ring, gb)
-    gb = collect(gens(Singular.std(ideal, complete_reduction=true)))
-    =#
-
     gb = sort(gb, by=collect ∘ AbstractAlgebra.exponent_vectors)
    
     normalize(f) = !isconstant(f) ? f * inv(leading_coefficient(f)) : f
