@@ -1,6 +1,6 @@
 using .RationalFunctionFields: interpolate_rational_function, interpolate_multivariate_rational_function,
 random_linear_shift, decompose_by_degrees, interpolate_polynomial,
-generate_kronecker_points, backward_kronecker
+generate_kronecker_points, backward_kronecker, decompose_by_good_degrees
 
 
 function test_rational_function_interpolation(f)
@@ -203,6 +203,25 @@ end
     end
 
 end
+
+#=
+@testset "Good Kronecker tests" begin
+    ns = [1, 5, 37]
+    prods = [[1, 2], [1, 2, 6], [1, 5, 25]]
+    
+    anses = [
+        [[1, 0],  [1, 0, 0], [1, 0, 0]],
+        [[1, 2],  [1, 2, 0], [0, 1, 0]],
+        [[1, 18], [1, 0, 6], [2, 2, 1]]
+    ]
+    
+    for (n, ans) in zip(ns, anses)
+        hmm = map(p -> decompose_by_good_degrees(n, p, length(p)), prods)
+        
+        @test hmm == ans
+    end
+end
+=#
 
 @testset "Kronecker backward substitution tests" begin
     FF = Sing.QQ

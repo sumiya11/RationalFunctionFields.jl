@@ -210,6 +210,47 @@ function backward_kronecker(
     finish(polybuilder)
 end
 
+
+function decompose_by_good_degrees(e, prods, n)
+    ans = zeros(Int, n)
+
+    for i in 1:n
+        ans[i] = div(e, prods[n - i + 1])
+        e = mod(e, prods[n - i + 1])
+    end
+    
+    ans
+end
+
+function backward_good_kronecker(
+                     f,
+                     target_ring,
+                     exps) where {T}
+    
+    prods = deepcopy(exps)
+    prods[1] = 1
+    for i in 2:length(prods)
+        prods[i] = prods[i - 1] * (exps[i - 1] + 1)
+    end
+
+    polybuilder = MPolyBuildCtx(target_ring)
+    nvariables = length(gens(target_ring))
+
+    for (e, c) in zip(0:degree(f), coefficients(f))
+        if iszero(c)
+            continue
+        end
+        push_term!(
+            polybuilder,
+            c,
+            decompose_by_good_degrees(e, prods, nvariables)
+        )
+    end
+
+    finish(polybuilder)
+end
+
+
 function backward_kronecker(
                   f::AbstractAlgebra.Generic.Frac{T},
                   target_ring,
@@ -217,6 +258,15 @@ function backward_kronecker(
 
     backward_kronecker(numerator(f), target_ring, maxexp) //
         backward_kronecker(denominator(f), target_ring, maxexp)
+end
+
+function backward_good_kronecker(
+                  f::AbstractAlgebra.Generic.Frac{T},
+                  target_ring,
+                  maxexp) where {T}
+
+    backward_good_kronecker(numerator(f), target_ring, maxexp) //
+        backward_good_kronecker(denominator(f), target_ring, maxexp)
 end
 
 function generate_kronecker_points(ground, maxexp, nvariables)
@@ -229,13 +279,24 @@ function generate_kronecker_points(ground, maxexp, nvariables)
     xs, points
 end
 
-function generate_good_kronecker_points(ground, maxexp, nvariables)
-    npoints = (maxexp + 1)^nvariables + 2
+function generate_good_kronecker_points(ground, exps, nvariables)
+    npoints = prod( map(x -> x + 1, exps) )
+   
+    prods = deepcopy(exps)
+    # univariate case? =(
+    prods[1] = 1
+    for i in 2:length(prods)
+        prods[i] = prods[i - 1] * (exps[i - 1] + 1)
+    end
+    
+    @info "!!!!!!!!!!" exps prods 
+
     xs = [rand(ground) for _ in 1:npoints]
     points = [
-        [ ground(j)^i for i in [ (maxexp + 1)^k for k in 0:(nvariables - 1) ] ]
-          for j in xs
+        [ p^prods[k] for k in 1:nvariables ]
+        for p in xs
     ]
+    
     xs, points
 end
 

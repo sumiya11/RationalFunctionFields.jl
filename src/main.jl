@@ -154,6 +154,9 @@ end
 
 """
 function generators_to_saturated_ideal(genset)
+
+    println(genset)
+
     basepolyring = parent(numerator( first(genset) ))
     nvariables = length(gens(basepolyring))
     ground = base_ring(basepolyring)
@@ -446,6 +449,7 @@ function new_generating_set_backend(genset)
     
     # Building a Kronecker substitution
 
+    # xs, points = generate_good_kronecker_points(ground, exponents, nvariables)
     xs, points = generate_kronecker_points(ground, maxexp, nvariables)
     npoints = length(points)
 
@@ -502,8 +506,8 @@ function new_generating_set_backend(genset)
                     xs,
                     yssmall
             )
+            # answer_e[j][ev] = backward_good_kronecker(f, basepolyring, exponents)
             answer_e[j][ev] = backward_kronecker(f, basepolyring, maxexp)
-
         end
     end
 
@@ -557,10 +561,10 @@ end
 """
     does something
 
-    genset: an array of AbstractAlgebra polynomials over AbstractAlgebra.QQ
+    genset: an array of AbstractAlgebra polynomials over Nemo.QQ
 
     Currently supports 
-    .    AA polynomials with Singular QQ / N_ZpField coefficients
+    .    Nemo polynomials with Nemo QQ coefficients
 """
 function new_generating_set(initial_genset; modular=true)
 
@@ -616,8 +620,17 @@ function new_generating_set(initial_genset; modular=true)
     @error "how did we end up like this?.."
 end
 
+#=
+function new_generating_set(
+                   initial_genset::Array{fmpq_mpoly};
+                   modular=true)
+    
+    # ?
+    new_generating_set(initial_genset, modular=modular)
+     
 
-
+end
+=#
 
 
 

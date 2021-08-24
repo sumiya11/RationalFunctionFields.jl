@@ -8,9 +8,9 @@ Logging.global_logger(logger)
 
 
 @testset "lol" begin
-    FF = Sing.QQ
+    FF = Nemo.QQ
 
-    R, (x1, x2) = AA.PolynomialRing(FF, ["x1", "x2"])
+    R, (x1, x2) = Nemo.PolynomialRing(FF, ["x1", "x2"])
 
     set = [
           ( x1^2 + x2^2 ) // 1,
