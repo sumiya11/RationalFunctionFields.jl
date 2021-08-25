@@ -215,7 +215,7 @@ function decompose_by_good_degrees(e, prods, n)
     ans = zeros(Int, n)
 
     for i in 1:n
-        ans[i] = div(e, prods[n - i + 1])
+        ans[n - i + 1] = div(e, prods[n - i + 1])
         e = mod(e, prods[n - i + 1])
     end
     
@@ -247,7 +247,8 @@ function backward_good_kronecker(
         )
     end
 
-    finish(polybuilder)
+    ans = finish(polybuilder)
+    ans
 end
 
 
@@ -280,7 +281,7 @@ function generate_kronecker_points(ground, maxexp, nvariables)
 end
 
 function generate_good_kronecker_points(ground, exps, nvariables)
-    npoints = prod( map(x -> x + 1, exps) )
+    npoints = prod( map(x -> x + 1, exps) ) * 2
    
     prods = deepcopy(exps)
     # univariate case? =(
@@ -289,8 +290,6 @@ function generate_good_kronecker_points(ground, exps, nvariables)
         prods[i] = prods[i - 1] * (exps[i - 1] + 1)
     end
     
-    @info "!!!!!!!!!!" exps prods 
-
     xs = [rand(ground) for _ in 1:npoints]
     points = [
         [ p^prods[k] for k in 1:nvariables ]

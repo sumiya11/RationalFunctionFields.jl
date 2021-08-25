@@ -24,7 +24,7 @@ function load_generators(filepath)
     
     nemoring, = Nemo.PolynomialRing(Nemo.QQ, strings, ordering=:lex)
     
-    generators = []
+    generators = Frac{fmpq_mpoly}[]
 
     for line in lines[2:end]
         polystrings = map(Meta.parse ∘ String ∘ strip, split(line, ", "))

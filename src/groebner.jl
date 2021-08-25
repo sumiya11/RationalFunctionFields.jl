@@ -91,8 +91,8 @@ function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
 
     gb = collect(gens(gb))
     
-    ideal = Singular.Ideal(G.eval_ring, gb)
-    gb = collect(gens(Singular.std(ideal, complete_reduction=true)))
+    # ideal = Singular.Ideal(G.eval_ring, gb)
+    # gb = collect(gens(Singular.std(ideal, complete_reduction=true)))
 
     # @info "After reduction $gb"
 

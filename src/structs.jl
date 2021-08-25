@@ -96,8 +96,9 @@ function contains(FF::RationalFunctionField, elem; proved=true)
     end
 end
 
-
-
+function field_generators(FF::RationalFunctionField)
+    FF.groebner_coeffs
+end
 
 
 

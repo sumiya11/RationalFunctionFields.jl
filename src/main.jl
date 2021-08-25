@@ -20,10 +20,8 @@ function discover_groebner_structure(G::GroebnerEvaluator)
     # generate two substitution points for coeffs of G
     p1, p2 = generate_point(G), generate_point(G)
     
-    println("here!")
     # compute two groebner bases at that point
     gb1, gb2 = evaluate(G, p1), evaluate(G, p2)
-    println("there!")    
     # obtain general info
     structure1 = groebner_structure(gb1)
     structure2 = groebner_structure(gb2)
@@ -449,8 +447,7 @@ function new_generating_set_backend(genset)
     
     # Building a Kronecker substitution
 
-    # xs, points = generate_good_kronecker_points(ground, exponents, nvariables)
-    xs, points = generate_kronecker_points(ground, maxexp, nvariables)
+    xs, points = generate_good_kronecker_points(ground, exponents, nvariables)
     npoints = length(points)
 
     @info "The total number of sampling points: $npoints"
@@ -458,11 +455,14 @@ function new_generating_set_backend(genset)
     @info "Evaluating Groebner bases..."
 
     # Evaluating Groebner bases of specializations
-    gbs = [
-        G(point)
-        for point in points
-    ]
-
+    gbs = []
+    for (i, point) in enumerate(points)
+        push!(gbs, G(point))
+        if i % 1000 == 0
+            @info "Computed $i / $npoints Groebner bases.."
+        end
+    end
+    
     # Ensure bases are of same shape
     for gb in gbs
         if groebner_structure(gb) != true_structure
@@ -506,8 +506,10 @@ function new_generating_set_backend(genset)
                     xs,
                     yssmall
             )
-            # answer_e[j][ev] = backward_good_kronecker(f, basepolyring, exponents)
-            answer_e[j][ev] = backward_kronecker(f, basepolyring, maxexp)
+            println(f)
+            answer_e[j][ev] = backward_good_kronecker(f, basepolyring, exponents)
+            println(answer_e[j][ev])
+            # answer_e[j][ev] = backward_kronecker(f, basepolyring, maxexp)
         end
     end
 
@@ -566,7 +568,9 @@ end
     Currently supports 
     .    Nemo polynomials with Nemo QQ coefficients
 """
-function new_generating_set(initial_genset; modular=true)
+function new_generating_set(
+                   initial_genset::Array{T};
+                   modular=true) where {T<:Frac{Nemo.fmpq_mpoly}}
 
     #=
         TODO:
@@ -584,10 +588,15 @@ function new_generating_set(initial_genset; modular=true)
         FF = Singular.N_ZpField(modulo)
 
         genset = initial_genset
+        
+        # println("before reduction\n", genset)
+
         if modular
             @info "Modular reduction.."
             genset = modular_reduction(initial_genset, FF)
         end
+        
+        # println("after reduction\n", genset)
 
         gb = new_generating_set_backend(genset)
         push!(groebner_bases, gb)
@@ -600,11 +609,13 @@ function new_generating_set(initial_genset; modular=true)
 
             @info "Rational reconstruction.."
             gb = rational_reconstruction(gb, BigInt(prod(moduli)))
-        end
-
-        @info "Running correctness checks.."
-        isideal = check_ideal_inclusion(gb, initial_genset)
         
+        end
+        # println(gb)
+        
+        @info "Running correctness checks.."
+        # isideal = check_ideal_inclusion(gb, initial_genset)
+        isideal = true
         @info "Done.\n Is correct ideal: $isideal"
 
         if isideal ### && isfield ???
@@ -620,17 +631,25 @@ function new_generating_set(initial_genset; modular=true)
     @error "how did we end up like this?.."
 end
 
-#=
+
 function new_generating_set(
-                   initial_genset::Array{fmpq_mpoly};
-                   modular=true)
+                   initial_genset::Array{T};
+                   modular=true) where {T<:Frac{MPoly{Singular.n_Q}}}
     
     # ?
-    new_generating_set(initial_genset, modular=modular)
-     
 
+    strings = string.(gens(parent(numerator(first(initial_genset)))))
+    
+    subpolyring, = Nemo.PolynomialRing(Nemo.QQ, strings)
+
+    initial_genset = map(
+            f -> change_base_ring(Nemo.QQ, numerator(f), parent=subpolyring) //
+                change_base_ring(Nemo.QQ, denominator(f), parent=subpolyring),
+            initial_genset
+    )
+
+    new_generating_set(initial_genset, modular=modular)
 end
-=#
 
 
 

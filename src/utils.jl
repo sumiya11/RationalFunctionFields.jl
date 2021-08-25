@@ -156,10 +156,14 @@ end
 
 ###############################################################################
 
-__randx = 10^3
+__randx = 10^4
 
 function Base.rand(::AbstractAlgebra.Rationals{BigInt})
     return AbstractAlgebra.QQ(rand(1:__randx), rand(1:__randx))
+end
+
+function Base.rand(::Nemo.FlintRationalField)
+    return Nemo.QQ(rand(1:__randx), rand(1:__randx))
 end
 
 function Base.rand(::Singular.Rationals)

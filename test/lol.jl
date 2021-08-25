@@ -13,19 +13,19 @@ Logging.global_logger(logger)
     R, (x1, x2) = Nemo.PolynomialRing(FF, ["x1", "x2"])
 
     set = [
-          ( x1^2 + x2^2 ) // 1,
-          ( x1^3 + x2^3 ) // 1,
-          ( x1^4 + x2^4 ) // 1
+          ( x1^2 + x2^2 ) // R(1),
+          ( x1^3 + x2^3 ) // R(1),
+          ( x1^4 + x2^4 ) // R(1)
     ]
 
     newset1 = new_generating_set(set)
-    newset2 = new_generating_set(set, modular=false)
+    # newset2 = new_generating_set(set, modular=false)
     
     println(newset1)
-    println(newset2)
+    # println(newset2)
     println("#######")
     println(field_generators(newset1))
-    println(field_generators(newset2))
+    # println(field_generators(newset2))
 
 end
 
