@@ -15,9 +15,22 @@ function gens(FF::RationalFunctionField)
     return FF.groebner_coeffs
 end
 
-function contains_randomized(FF::RationalFunctionField, elem)
-    # TODO: use Theorem 3.3 from the draft
+function contains_randomized(
+            FF::RationalFunctionField, elem;
+            p=0.99)
 
+    # Theorem 3.3 from
+    # Structural identifiability via input-output projections, Pogudin et alia
+
+    n = length(gens(parent(numerator(elem))))
+    d = maximum([
+            maximum([degrees(numerator(f))..., degrees(denominator(f))...])
+            for f in FF.generating_set
+    ])
+    M = round(Int, 6d^(n+3) / (1 - p))
+    
+    @info "Random values bound M = $M"
+    
     # TODO: merge into a funuction
     It, yoverx, basepolyring, nvariables, ground, ystrings, Q, t = generators_to_saturated_ideal(FF.generating_set)
 
@@ -27,9 +40,9 @@ function contains_randomized(FF::RationalFunctionField, elem)
                               # Gleb: why and what is this? To discuss
                               ordering=ordering_lp(nvariables)*ordering_c())
 
-    G = GroebnerEvaluator(It, eval_ring)
+    G = GroebnerEvaluator(It, eval_ring, basepolyring, ground)
 
-    p = generate_point(G)
+    p = generate_point(G, M=M)
 
     gb = evaluate(G, p)
     elem = idealize_and_eval_element(elem, eval_ring, p)

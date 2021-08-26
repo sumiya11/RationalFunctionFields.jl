@@ -25,7 +25,7 @@ function discover_groebner_structure(G::GroebnerEvaluator)
     # obtain general info
     structure1 = groebner_structure(gb1)
     structure2 = groebner_structure(gb2)
-
+    
     if structure1 != structure2
         # :D
         @debug "discovering failed.. recursive call"
@@ -55,7 +55,7 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
     npolys, ncoeffs = discover_groebner_structure(G)
     ncoeffs = sum(ncoeffs)
     
-    lightring, = AbstractAlgebra.PolynomialRing(ground, "x")  
+    lightring, = Nemo.PolynomialRing(ground, "x")  
     
     # generator for inerpolation sequence
     # sequence_gen^1, sequence_gen^2, sequence_gen^3,...
@@ -87,7 +87,7 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
                 xs[k][varidx] = rand(ground)
             end
             
-            ys = map(c -> julia.(c), map(field_generators, map(G, xs)))            
+            ys = map(c -> ground.(Int.(c)), map(field_generators, map(G, xs)))            
 
             all_success = true
             for (j, deg) in enumerate(predicted_degrees)
@@ -107,7 +107,7 @@ function discover_groebner_degrees(G::GroebnerEvaluator)
                     break
                 end
 
-                predicted_degrees[j] = sum(applytofrac(degree, interpolated))
+                predicted_degrees[j] = maximum(applytofrac(degree, interpolated))
                 all_success = all_success && check_success(predicted_degrees[j])
             end
 
@@ -153,8 +153,6 @@ end
 """
 function generators_to_saturated_ideal(genset)
 
-    println(genset)
-
     basepolyring = parent(numerator( first(genset) ))
     nvariables = length(gens(basepolyring))
     ground = base_ring(basepolyring)
@@ -168,7 +166,7 @@ function generators_to_saturated_ideal(genset)
     Fs = map(numerator ∘ (g -> g * Q), genset)
 
     ystrings = ["y$i" for i in 1:nvariables]
-    yoverx, yoverxvars = AbstractAlgebra.PolynomialRing(
+    yoverx, yoverxvars = Nemo.PolynomialRing(
                                                  basepolyring,
                                                  ystrings,
                                                  ordering=:lex
@@ -212,7 +210,7 @@ function generators_to_ideal(genset)
     Fs = map(numerator ∘ (g -> g * Q), genset)
 
     ystrings = ["y$i" for i in 1:nvariables]
-    yoverx, yoverxvars = AbstractAlgebra.PolynomialRing(
+    yoverx, yoverxvars = Nemo.PolynomialRing(
                                                  basepolyring,
                                                  ystrings,
                                                  ordering=:lex
@@ -243,7 +241,7 @@ function saturate(I, Q)
     R = parent(I[1])
     base = base_ring(R)
     strings = map(String, symbols(R))
-    parentring, vs = AbstractAlgebra.PolynomialRing(base, [strings..., "t"], ordering=:lex)
+    parentring, vs = Nemo.PolynomialRing(base, [strings..., "t"], ordering=:lex)
 
     t = last(vs)
     It = [
@@ -324,13 +322,13 @@ function idealize_element(elem, basepolyring, basepolyrings, yoverx, yoverxs)
     ground = base_ring(basepolyring)
     varstrings = string.(symbols(yoverx))
 
-    tmp, = AbstractAlgebra.PolynomialRing(basepolyring, varstrings)
+    tmp, = Nemo.PolynomialRing(basepolyring, varstrings)
 
     Ay = change_base_ring(basepolyring, A, parent=tmp)
     By = change_base_ring(basepolyring, B, parent=tmp)
     
-    Ay = map_coefficients(c -> c // 1, Ay)
-    By = map_coefficients(c -> c // 1, By)
+    Ay = map_coefficients(c -> c // basepolyring(1), Ay)
+    By = map_coefficients(c -> c // basepolyring(1), By)
     
     f = A*By - Ay*B
    
@@ -358,7 +356,7 @@ function aa_ideal_to_singular(I)
 
     F = base_ring(basepolyring)
 
-    yoverx, yoverxvars = AbstractAlgebra.PolynomialRing(basepolyring, ystrings, ordering=:lex)
+    yoverx, yoverxvars = Nemo.PolynomialRing(basepolyring, ystrings, ordering=:lex)
 
     basepolyrings, = Singular.AsEquivalentSingularPolynomialRing(basepolyring)
     fracbases = FractionField(basepolyrings)
@@ -395,7 +393,7 @@ function groebner_ideal_to_singular(polys)
     basepolyring = base_ring(frac_ring)
     ground = base_ring(basepolyring)        
 
-    s_basepolyring, = Singular.AsEquivalentSingularPolynomialRing(basepolyring)
+    s_basepolyring = tosingular(basepolyring)
     s_frac = FractionField(s_basepolyring)
     s_yoverx,  = Singular.PolynomialRing(s_frac, varstrings)
 
@@ -426,10 +424,11 @@ function new_generating_set_backend(genset)
     ideal_info = generators_to_saturated_ideal(genset)
     It, yoverx, basepolyring, nvariables, ground, ystrings, Q, t = ideal_info.I, ideal_info.yoverx, ideal_info.basepolyring, ideal_info.nvariables, ideal_info.ground, ideal_info.ystrings, ideal_info.Q, ideal_info.t
 
-
+    singular_ground = tosingular(ground)  
+    
     # Estimating the largest degree of a coeff in the Groebner basis
     eval_ring, evalvars = Singular.PolynomialRing(
-                                        ground,
+                                        singular_ground,
                                         [ystrings..., "t"],
                           ordering=ordering_lp(nvariables+1)*ordering_c())
 
@@ -460,6 +459,7 @@ function new_generating_set_backend(genset)
         push!(gbs, G(point))
         if i % 1000 == 0
             @info "Computed $i / $npoints Groebner bases.."
+            @info last(gbs)
         end
     end
     
@@ -474,7 +474,7 @@ function new_generating_set_backend(genset)
 
     # Performing univariate interpolation
     @info "Started interpolation.."
-    uni, = AbstractAlgebra.PolynomialRing(ground, "x")
+    uni, = Nemo.PolynomialRing(ground, "x")
 
     ys = []
     for i in 1:npoints
@@ -482,7 +482,7 @@ function new_generating_set_backend(genset)
 
         for (j, gg) in enumerate(gbs[i])
             for (ee, c) in zip(exponent_vectors(gg), coefficients(gg))
-                ys[i][j][ee] = c
+                ys[i][j][ee] = ground(Int(c))
             end
         end
 
@@ -496,19 +496,18 @@ function new_generating_set_backend(genset)
         @info "Interpolating $j th polynomial coeffs.."
         for ev in exponent_vectors(gg)
 
-            yssmall = map(julia, [
+            yssmall = [
                 get(y[j], ev, ground(0))
                 for y in ys
-            ])
+            ]
 
             f = interpolate_rational_function(
                     uni,
                     xs,
                     yssmall
             )
-            println(f)
+            
             answer_e[j][ev] = backward_good_kronecker(f, basepolyring, exponents)
-            println(answer_e[j][ev])
             # answer_e[j][ev] = backward_kronecker(f, basepolyring, maxexp)
         end
     end
@@ -519,7 +518,7 @@ function new_generating_set_backend(genset)
     # TODO : speed up this part
 
     gb = []
-    R, = AbstractAlgebra.PolynomialRing(
+    R, = Nemo.PolynomialRing(
                                 FractionField(basepolyring),
                                 ystrings,
                                 ordering=:lex
@@ -585,7 +584,8 @@ function new_generating_set(
     while true
         
         modulo = last(moduli)
-        FF = Singular.N_ZpField(modulo)
+        # FF = Singular.N_ZpField(modulo)
+        FF = Nemo.GF(modulo)
 
         genset = initial_genset
         
@@ -605,17 +605,15 @@ function new_generating_set(
             @info "CRT reconstruction.."
                 
             # let us just hope no coeff vanishes under in a small field
-            gb = CRT_reconstruction(groebner_bases, moduli)
-
+            gb = CRT_reconstruction(groebner_bases, BigInt.(moduli))
+            
             @info "Rational reconstruction.."
-            gb = rational_reconstruction(gb, BigInt(prod(moduli)))
+            gb = rational_reconstruction(gb, prod(BigInt.(moduli)))
         
         end
-        # println(gb)
         
         @info "Running correctness checks.."
-        # isideal = check_ideal_inclusion(gb, initial_genset)
-        isideal = true
+        isideal = check_ideal_inclusion(gb, initial_genset)
         @info "Done.\n Is correct ideal: $isideal"
 
         if isideal ### && isfield ???
@@ -623,9 +621,10 @@ function new_generating_set(
         end
         
         @warn "Computed *incorrect* \n$gb \nmodulo $modulo"
-        break
+        
+        break 
 
-        push!(moduli, Primes.nextprime(modulo))
+        push!(moduli, Primes.nextprime(modulo + 1))
     end
     
     @error "how did we end up like this?.."

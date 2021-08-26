@@ -13,7 +13,7 @@ module RationalFunctionFields
     import AbstractAlgebra.Generic: Frac, MPoly
 
     import Nemo
-    import Nemo: gfp_fmpz_elem, gfp_elem, fmpq_mpoly, gfp_mpoly
+    import Nemo: gfp_fmpz_elem, gfp_elem, fmpq_mpoly, gfp_mpoly, fmpz_mpoly
     
     import Singular
     import Singular: std, Ideal

@@ -145,6 +145,24 @@ function tosingular(F::AbstractAlgebra.Generic.Rationals)
     Singular.QQ
 end
 
+function tosingular(F::Nemo.GaloisField)
+    Singular.N_ZpField(Int(AbstractAlgebra.characteristic(F)))
+end
+
+
+### TODO 
+function tosingular(F::Nemo.GFPMPolyRing)
+    strings = string.(gens(F))
+    ground = base_ring(F)
+    Singular.PolynomialRing(tosingular(ground), strings)[1]
+end
+
+function tosingular(F::AbstractAlgebra.Generic.MPolyRing)
+    strings = string.(gens(F))
+    ground = base_ring(F)
+    Singular.PolynomialRing(tosingular(ground), strings)[1]
+end
+
 function tosingular(F)
     F
 end

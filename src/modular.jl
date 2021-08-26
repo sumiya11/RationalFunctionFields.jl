@@ -20,7 +20,7 @@ function rational_reconstruction(a::I, m::I) where {I<:Union{Int, BigInt}}
 
     a = mod(a, m)
     if a == 0 || m == 0
-        return Singular.QQ(0, 1)
+        return Nemo.QQ(0, 1)
     end
     if m < 0
         m = -m
@@ -29,7 +29,7 @@ function rational_reconstruction(a::I, m::I) where {I<:Union{Int, BigInt}}
         a = m - a
     end
     if a == 1
-        return Singular.QQ(1, 1)
+        return Nemo.QQ(1, 1)
     end
     bnd = sqrt(float(m) / 2)
 
@@ -46,7 +46,7 @@ function rational_reconstruction(a::I, m::I) where {I<:Union{Int, BigInt}}
     r = V[3] * sign(V[2])
     # changed from `<= bnd` to `<= m / bnd`
     if t <= m / bnd && gcd(r, t) == 1
-        return Singular.QQ(r, t)
+        return Nemo.QQ(r, t)
     end
 
     throw(DomainError(
@@ -60,11 +60,15 @@ function rational_reconstruction(f::Nemo.gfp_elem, m)
     rational_reconstruction(BigInt(f.data), m)
 end
 
+function rational_reconstruction(f::Nemo.fmpz, m)
+    rational_reconstruction(BigInt(f), m)
+end
+
 function rational_reconstruction(f::AbstractAlgebra.GFElem{T}, m) where {T}
     rational_reconstruction(AbstractAlgebra.lift(f), m)
 end
 
-function rational_reconstruction(f::Union{MPoly, gfp_mpoly}, m)
+function rational_reconstruction(f::Union{MPoly, gfp_mpoly, fmpz_mpoly}, m)
     map_coefficients(c -> rational_reconstruction(c, m), f)
 end
 
@@ -135,11 +139,10 @@ function CRT(moduli, remainders)
     m = prod(moduli)
     
     ans = BigInt(0)
-    
     for (i, (mi, vi)) in enumerate(zip(moduli, remainders))
         mi_hat = divexact(m, mi)
         _, s, t = Nemo.gcdx(mi_hat, mi)
-        ans = mod(ans + vi * s * mi_hat, m)
+        ans = BigInt(mod(ans + vi * s * mi_hat, m))
     end
     
     ans
@@ -160,9 +163,9 @@ function CRT_reconstruction(groebner_bases, moduli)
     ystring = string.(symbols(yoverx))
     xstring = string.(symbols(basepolyring))
     
-    ground = AbstractAlgebra.ZZ
-    inner_ring, = AbstractAlgebra.PolynomialRing(ground, xstring)
-    outer_ring, = AbstractAlgebra.PolynomialRing(FractionField(inner_ring), ystring)
+    ground = Nemo.ZZ
+    inner_ring, = Nemo.PolynomialRing(ground, xstring)
+    outer_ring, = Nemo.PolynomialRing(FractionField(inner_ring), ystring)
 
     npolys = length(onegb)
     ncoeffs = map(length, onegb)    
@@ -187,7 +190,7 @@ function CRT_reconstruction(groebner_bases, moduli)
                         for gb in groebner_bases
                     ]
         
-                    newcoeff = CRT(moduli, map(Int, oldcoeffs))
+                    newcoeff = CRT(moduli, map(x -> BigInt(x.data), oldcoeffs))
                     push_term!(inner_builder, newcoeff, inner_e)
                 end
 

@@ -65,25 +65,27 @@ end
 """
 function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
     t = last(gens(G.eval_ring))
-    
+    ground = base_ring(G.eval_ring)
+
     Is = [
-            map_coefficients(c -> evaluate(c, p), f)
+            map_coefficients(c -> ground(evaluate(c, p).data), f)
             for f in G.underlying_ideal
          ]
-    
+
+    # @info "" typeof(Is[1]) typeof(G.eval_ring) typeof(base_ring(G.eval_ring))
+
     Is = [
             change_base_ring(base_ring(G.eval_ring), f, parent=G.eval_ring)
             for f in Is
     ]
+    # @info "" typeof(Is[1])
     
     ideal = Singular.Ideal(G.eval_ring, Is)
     # @info "I am gpoing to compute GB of $ideal"
     gb = GroebnerBasis.f4(ideal, reducegb=0, monorder=:lex)
-    # println("why...")
     # this should never happen ideally (but it does!!)
     # @info gb
     if length(gens(gb)) == 1
-    #if true 
         @info gb
         @warn "F4 failed. Switching to Singular.std"
         gb = Singular.std(ideal, complete_reduction=true)
@@ -123,8 +125,12 @@ end
 """
     Returns a random point suitable for evaluation
 """
-function generate_point(G::GroebnerEvaluator)
-    [ rand(G.ground) for _ in 1:nvars(G) ]
+function generate_point(G::GroebnerEvaluator; M=Inf)
+    if M == Inf
+        [ rand(G.ground) for _ in 1:nvars(G) ]
+    else
+        [ G.ground(rand(0:M)) for _ in 1:nvars(G) ]
+    end
 end
 
 function AbstractAlgebra.base_ring(G::GroebnerEvaluator)

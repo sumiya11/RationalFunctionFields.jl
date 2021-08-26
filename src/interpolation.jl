@@ -20,9 +20,6 @@ end
 # univariate
 # returns :: AbstractAlgebra.Generic.Poly
 function interpolate_polynomial(R, xs, ys)
-
-    # @assert typeof(xs[1]) == typeof(ys[1])
-    # @assert typeof(xs[1]) == AbstractAlgebra.elem_type(AbstractAlgebra.base_ring(R))
     
     f = sum(
         ys[i] * lagrange_interpolant(R, xs, i)
