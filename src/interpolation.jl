@@ -287,7 +287,12 @@ function generate_good_kronecker_points(ground, exps, nvariables)
         prods[i] = prods[i - 1] * (exps[i - 1] + 1)
     end
     
-    xs = [rand(ground) for _ in 1:npoints]
+    xs = Set([rand(ground) for _ in 1:npoints])
+    while length(xs) < npoints
+        append!(xs, [rand(ground) for _ in 1:(npoints-length(xs))])
+    end
+    xs = collect(xs)
+
     points = [
         [ p^prods[k] for k in 1:nvariables ]
         for p in xs

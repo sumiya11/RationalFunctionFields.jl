@@ -33,20 +33,26 @@ function contains_randomized(
     
     # TODO: merge into a funuction
     It, yoverx, basepolyring, nvariables, ground, ystrings, Q, t = generators_to_saturated_ideal(FF.generating_set)
+    
+    @info "" typeof(It[1])
 
+    grounds = tosingular(ground)
     eval_ring, evalvars = Singular.PolynomialRing(
-                              ground,
+                              grounds,
                               [ystrings..., "t"],
                               # Gleb: why and what is this? To discuss
                               ordering=ordering_lp(nvariables)*ordering_c())
+    
+    eval_ring_2, = Nemo.PolynomialRing(ground, [ystrings..., "t"])
 
     G = GroebnerEvaluator(It, eval_ring, basepolyring, ground)
 
     p = generate_point(G, M=M)
 
     gb = evaluate(G, p)
-    elem = idealize_and_eval_element(elem, eval_ring, p)
-    
+    elem = idealize_and_eval_element(elem, eval_ring_2, [p..., one(ground)])
+    elem = change_base_ring(grounds, elem, parent=eval_ring)
+
     @debug "Evaluated eLement is $elem"
     @debug "Evaluated groebner basis is $gb"
 

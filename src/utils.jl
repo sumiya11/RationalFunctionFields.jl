@@ -149,6 +149,9 @@ function tosingular(F::Nemo.GaloisField)
     Singular.N_ZpField(Int(AbstractAlgebra.characteristic(F)))
 end
 
+function tosingular(F::Nemo.FlintRationalField)
+    Singular.QQ
+end
 
 ### TODO 
 function tosingular(F::Nemo.GFPMPolyRing)

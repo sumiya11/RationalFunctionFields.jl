@@ -66,9 +66,14 @@ end
 function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
     t = last(gens(G.eval_ring))
     ground = base_ring(G.eval_ring)
-
+    
+    # @info G.eval_ring typeof(G.eval_ring) ground typeof(ground)
+    # change
+    lift = typeof(p[1]) <: Nemo.gfp_elem ? x -> x.data : x -> x
+        
+    
     Is = [
-            map_coefficients(c -> ground(evaluate(c, p).data), f)
+            map_coefficients(c -> ground(lift(evaluate(c, p))), f)
             for f in G.underlying_ideal
          ]
 

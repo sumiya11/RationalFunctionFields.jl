@@ -435,6 +435,7 @@ function new_generating_set_backend(genset)
     G = GroebnerEvaluator(It, eval_ring, basepolyring, ground)
 
     true_structure = discover_groebner_structure(G)
+    npolys, ncoeffs = true_structure
 
     @info "Groebner structure" true_structure
 
@@ -493,7 +494,7 @@ function new_generating_set_backend(genset)
     answer_e = [Dict() for _ in 1:length(gbs[1])]
     for (j, gg) in enumerate(gbs[1])
 
-        @info "Interpolating $j th polynomial coeffs.."
+        @info "Interpolating $j th out of $npolys polynomials.."
         for ev in exponent_vectors(gg)
 
             yssmall = [
@@ -569,7 +570,8 @@ end
 """
 function new_generating_set(
                    initial_genset::Array{T};
-                   modular=true) where {T<:Frac{Nemo.fmpq_mpoly}}
+                   modular=true,
+                   check=false) where {T<:Frac{Nemo.fmpq_mpoly}}
 
     #=
         TODO:
@@ -612,21 +614,25 @@ function new_generating_set(
         
         end
         
-        @info "Running correctness checks.."
-        isideal = check_ideal_inclusion(gb, initial_genset)
-        @info "Done.\n Is correct ideal: $isideal"
+        if check
+            @info "Running correctness checks.."
+            isideal = check_ideal_inclusion(gb, initial_genset)
+            @info "Done.\n Is correct ideal: $isideal"
 
-        if isideal ### && isfield ???
+            if isideal ### && isfield ???
+                return gb
+            end
+        
+            @warn "Computed *incorrect* \n$gb \nmodulo $modulo"
+        
+            push!(moduli, Primes.nextprime(modulo + 1))
+    
+        else
             return gb
         end
-        
-        @warn "Computed *incorrect* \n$gb \nmodulo $modulo"
-        
-        break 
-
-        push!(moduli, Primes.nextprime(modulo + 1))
-    end
     
+    end
+
     @error "how did we end up like this?.."
 end
 
