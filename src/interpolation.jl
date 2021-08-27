@@ -289,7 +289,7 @@ function generate_good_kronecker_points(ground, exps, nvariables)
     
     xs = Set([rand(ground) for _ in 1:npoints])
     while length(xs) < npoints
-        append!(xs, [rand(ground) for _ in 1:(npoints-length(xs))])
+        xs = union!(xs, Set([rand(ground) for _ in 1:(npoints-length(xs))]))
     end
     xs = collect(xs)
 
