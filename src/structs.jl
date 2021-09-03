@@ -97,6 +97,7 @@ function simple_preprocess(FF::RationalFunctionField)
             push!(ans, elem)
         end
     end
+    ans = [ x * inv(Nemo.lc(numerator(x))) for x in ans ]
     ans
 end
 

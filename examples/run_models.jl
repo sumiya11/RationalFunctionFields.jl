@@ -54,11 +54,17 @@ models = [
     )
 ]
 
-for m in models
+for (i, m) in enumerate(models)
     ioeqs = find_ioequations(m)
     identifiable_functions_raw = extract_identifiable_functions_raw(collect(values(ioeqs)), m.parameters)
+
+    println( Array{AbstractAlgebra.Generic.Frac{Nemo.fmpq_mpoly}, 1}(identifiable_functions_raw), " !!\n")
+
     FF = RationalFunctionField(Array{AbstractAlgebra.Generic.Frac{Nemo.fmpq_mpoly}, 1}(identifiable_functions_raw))
-    compute_groebner!(FF)
-    simplify_generators!(FF)
+    # compute_groebner!(FF)
+    # simplify_generators!(FF)
     @info "Simplified $(gens(FF))"
+    if i == 2
+        break
+    end
 end
