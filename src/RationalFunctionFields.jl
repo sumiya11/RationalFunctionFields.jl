@@ -35,4 +35,9 @@ module RationalFunctionFields
     include("main.jl")
     include("structs.jl")
 
+    export RationalFunctionField    
 end
+
+
+
+
