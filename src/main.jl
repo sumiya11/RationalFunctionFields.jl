@@ -625,7 +625,7 @@ function new_generating_set(
         
             @warn "Computed *incorrect* \n$gb \nmodulo $modulo"
         
-            push!(moduli, Primes.nextprime(modulo + 1))
+            push!(moduli, Primes.nextprime(BigInt(modulo + 1)))
     
         else
             return gb
