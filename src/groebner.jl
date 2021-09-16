@@ -6,30 +6,22 @@
     
     See evaluate function for more details
 """
-mutable struct GroebnerEvaluator
-    underlying_ideal
-    
-    # we want these *not* to be wrapped into Singular
-    eval_ring
-    coeff_ring
-    ground
 
-    saturated
+### Probably we want to dispatch on coefficients type
+mutable struct GroebnerEvaluator
+    ideal::IdealContext
 end
 
 """
     Convenience ctor 1
+    
+    ?? convenience
 """
-function GroebnerEvaluator(ideal, eval_ring; saturated=true)
-    f = first(ideal)
-    GroebnerEvaluator(ideal,
-                       eval_ring,
-                       base_ring(f),
-                       base_ring(base_ring(f)),
-                       saturated
-    )
+function GroebnerEvaluator(ideal)
+    GroebnerEvaluator(ideal)
 end
 
+#=
 """
     Convenience ctor 2
 """
@@ -47,6 +39,7 @@ function GroebnerEvaluator(
                        saturated
     )
 end
+=#
 
 
 """
@@ -64,26 +57,28 @@ end
     erased from the resulting Groebner basis
 """
 function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
-    t = last(gens(G.eval_ring))
-    ground = base_ring(G.eval_ring)
+    context = G.ideal
     
-    # @info G.eval_ring typeof(G.eval_ring) ground typeof(ground)
-    # change
+    I = context.I
+    ground = context.ground
+    evalring = context.evalring    
+
+    singular_ground = base_ring(evalring)
+
+    # TODO: change
     lift = typeof(p[1]) <: Nemo.gfp_elem ? x -> x.data : x -> x
         
     Is = [
-            map_coefficients(c -> ground(lift(evaluate(c, p))), f)
-            for f in G.underlying_ideal
+            map_coefficients(c -> singular_ground(lift(evaluate(c, p))), f)
+            for f in I
          ]
 
-    # @info "" typeof(Is[1]) typeof(G.eval_ring) typeof(base_ring(G.eval_ring))
-
     Is = [
-            change_base_ring(base_ring(G.eval_ring), f, parent=G.eval_ring)
+            change_base_ring(base_ring(evalring), f, parent=evalring)
             for f in Is
     ]
     
-    ideal = Singular.Ideal(G.eval_ring, Is)
+    ideal = Singular.Ideal(evalring, Is)
     # @info "I am gpoing to compute GB of $ideal"
     gb = GroebnerBasis.f4(ideal, reducegb=0, monorder=:lex)
     # this should never happen ideally (but it does!!)
@@ -96,12 +91,13 @@ function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
 
     gb = collect(gens(gb))
     
-    # ideal = Singular.Ideal(G.eval_ring, gb)
+    # ideal = Singular.Ideal(eval_ring, gb)
     # gb = collect(gens(Singular.std(ideal, complete_reduction=true)))
 
     # @info "After reduction $gb"
 
-    if G.saturated && string(t) == "t"
+    if context.saturated
+        t = last(gens(evalring))
         gb = filter(f -> degree(f, t) == 0, gb)
     end
     
@@ -122,7 +118,7 @@ end
 
 
 function AbstractAlgebra.nvars(G::GroebnerEvaluator)
-    return length(gens(G.coeff_ring))
+    return length(gens(G.ideal.basepolyring))
 end
 
 """
@@ -130,14 +126,14 @@ end
 """
 function generate_point(G::GroebnerEvaluator; M=Inf)
     if M == Inf
-        [ rand(G.ground) for _ in 1:nvars(G) ]
+        [ rand(G.ideal.ground) for _ in 1:nvars(G) ]
     else
-        [ G.ground(rand(0:M)) for _ in 1:nvars(G) ]
+        [ G.ideal.ground(rand(0:M)) for _ in 1:nvars(G) ]
     end
 end
 
 function AbstractAlgebra.base_ring(G::GroebnerEvaluator)
-    G.ground
+    G.ideal.ground
 end
 
 

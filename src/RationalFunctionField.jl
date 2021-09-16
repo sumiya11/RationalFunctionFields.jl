@@ -32,7 +32,7 @@ function AbstractAlgebra.gens(FF::RationalFunctionField)
     if isempty(FF.groebner_set)
         return FF.generating_set
     else
-        return groebner_structure(FF.groebner_set)
+        return obtain_generators(FF.groebner_set)
     end
 end
 
@@ -60,28 +60,13 @@ function contains_randomized(
     
     @info "Random values bound M = $M"
     
-    # idealize the generators and the elem simultaneosly
-    elements_all = push!(deepcopy(FF.generating_set), elem)
-    I_all = idealize(elements_all)
-    ground = I_all.ground    
-
-    @info "" typeof(I_all.I[1])
-
-    singular_ground = tosingular(ground)
-    eval_ring, evalvars = Singular.PolynomialRing(
-                              singular_ground,
-                              I_all.ystrings,
-                              # Gleb: why and what is this? To discuss
-                              ordering=ordering_lp(I_all.nvariables)*ordering_c())
-    
-    I = I_all
-    i = deepcopy(I)
-    i.I = [i.I[end]]
-    I.I = I.I[1:end-1]
+    # idealize the generators and the elem in the same rings
+    I = idealize(FF.generating_set)
+    i = idealize(elem, I)
     
     # evaluate at a random point
-    G = GroebnerEvaluator(I.I, eval_ring, I.basepolyring, ground, saturated=false)
-    g = GroebnerEvaluator(i.I, eval_ring, I.basepolyring, ground, saturated=false)
+    G = GroebnerEvaluator(I)
+    g = GroebnerEvaluator(i)
 
     p = generate_point(G, M=M)
 
@@ -91,7 +76,7 @@ function contains_randomized(
     @debug "Evaluated eLement is $elem"
     @debug "Evaluated groebner basis is $gb"
 
-    Is = Singular.Ideal(eval_ring, gb)
+    Is = Singular.Ideal(I.evalring, gb)
     
     # check ideal membership
     return iszero(Singular.reduce(elem..., GroebnerBasis.f4(Is)))
@@ -109,6 +94,7 @@ function contains_using_groebner(FF::RationalFunctionField, elem)
         compute_groebner!(FF)
     end
 
+    # TODO: think of something more elegant
     Is, yoverx, basepolyring, yoverxs, basepolyrings = groebner_ideal_to_singular(FF.groebner_set)
 
     f = idealize_element(elem, basepolyring, basepolyrings, yoverx, yoverxs)

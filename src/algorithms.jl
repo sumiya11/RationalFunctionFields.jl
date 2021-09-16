@@ -431,16 +431,9 @@ function groebner_ideal_backend(genset)
     I = idealize(genset, saturated=true)
     ground = I.ground    
 
-    singular_ground = tosingular(ground)  
-    
     # Estimating the largest degree of a coeff in the Groebner basis
     
-    eval_ring, evalvars = Singular.PolynomialRing(
-                                        singular_ground,
-                                        [I.ystrings..., "t"],
-                          ordering=ordering_lp(I.nvariables+1)*ordering_c())
-    
-    G = GroebnerEvaluator(I.I, eval_ring, I.basepolyring, I.ground)
+    G = GroebnerEvaluator(I)
 
     true_structure = discover_groebner_structure(G)
     npolys, ncoeffs = true_structure
@@ -626,9 +619,10 @@ function groebner_ideal(
         if check
             @info "Running correctness checks.."
             isideal = check_ideal_inclusion(gb, initial_genset)
-            @info "Done.\n Is correct ideal: $isideal"
+            isfield = check_field_inclusion(initial_genset, obtain_generators(gb))
+            @info "Done.\n Is correct ideal: $isideal. Is correct field: $isfield"
 
-            if isideal ### && isfield ???
+            if isideal && isfield ### ???
                 return gb
             end
         
@@ -648,7 +642,8 @@ end
 
 function groebner_ideal(
                    initial_genset::Array{T};
-                   modular=true) where {T<:Frac{MPoly{Singular.n_Q}}}
+                   modular=true,
+                   check=false) where {T<:Frac{MPoly{Singular.n_Q}}}
     
     # ?
 
@@ -662,12 +657,62 @@ function groebner_ideal(
             initial_genset
     )
 
-    groebner_ideal(initial_genset, modular=modular)
+    groebner_ideal(initial_genset, modular=modular, check=check)
 end
 
 
+## TODO: dup
+function contains_randomized(
+            generators, elem;
+            p=0.99)
 
+    # Theorem 3.3 from
+    # Structural identifiability via input-output projections, Pogudin et alia
 
+    # choose appropriate to the given 'p' random upper bound
+    n = length(gens(parent(numerator(elem))))
+    d = maximum([
+            maximum([degrees(numerator(f))..., degrees(denominator(f))...])
+            for f in generators
+    ])
+    M = round(Int, 6d^(n+3) / (1 - p))
+
+    @info "Random values bound M = $M"
+
+    # idealize the generators and the elem in the same rings
+    I = idealize(generators)
+    i = idealize(elem, I)
+    # evaluate at a random point
+    G = GroebnerEvaluator(I)
+    g = GroebnerEvaluator(i)
+
+    p = generate_point(G, M=M)
+
+    gb = evaluate(G, p)
+    
+    elem = evaluate(g, p)
+
+    @debug "Evaluated eLement is $elem"
+    @debug "Evaluated groebner basis is $gb"
+
+    Is = Singular.Ideal(I.evalring, gb)
+    
+    # check ideal membership
+    return iszero(Singular.reduce(elem..., GroebnerBasis.f4(Is)))
+end
+
+function check_field_inclusion(generators, elements)
+    for elem in elements
+        a, b = unpackfrac(elem)
+        if Nemo.isconstant(a) && Nemo.isconstant(b)
+            continue
+        end
+        if !contains_randomized(generators, elem, p=0.999)
+            return false
+        end
+    end
+    true
+end
 
 
 

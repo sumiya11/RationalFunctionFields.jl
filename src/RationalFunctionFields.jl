@@ -36,8 +36,7 @@ module RationalFunctionFields
     include("algorithms.jl")
     include("RationalFunctionField.jl")
 
-    export RationalFunctionField    
-    export simplify!, contains
+    export RationalFunctionField, simplify!, contains
 end
 
 

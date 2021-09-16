@@ -20,7 +20,9 @@ Logging.global_logger(logger)
     println( RationalFunctionFields.contains(FF, x1 // R(1), p=1) )
     
     println( RationalFunctionFields.contains(FF, x2^2 // R(1), p=0.99) )
-    
+
+
+    println( RationalFunctionFields.groebner_ideal(set, check=true) )
 end
 
 
