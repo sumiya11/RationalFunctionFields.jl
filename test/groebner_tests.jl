@@ -1,6 +1,6 @@
-using .RationalFunctionFields: new_generating_set, generators_to_ideal, GroebnerEvaluator, 
+using .RationalFunctionFields: groebner_ideal, generators_to_ideal, GroebnerEvaluator, 
                          discover_groebner_structure, discover_groebner_degrees, saturate,
-                         naive_new_generating_set, field_generators, aa_ideal_to_singular,
+                         naive_groebner_ideal, obtain_generators, aa_ideal_to_singular,
                          RationalFunctionField, contains_randomized, check_ideal_inclusion
 
 logger = Logging.SimpleLogger(stderr, Logging.Debug)
@@ -49,8 +49,8 @@ end
            (x1*x2) // 1
    ]
 
-    gb = naive_new_generating_set(set)
-    coeffs = field_generators(gb)
+    gb = naive_groebner_ideal(set)
+    coeffs = obtain_generators(gb)
 
     @test Set(coeffs) == Set([x1*x2, -x1*x2, -x1^2 - x2^2, R(1)])
 
@@ -107,7 +107,8 @@ end
 
     npolys, ncoeffs = discover_groebner_structure(G)
     
-    println( npolys, " !!!!!!!!!!!!! ",  ncoeffs )
+    @test npolys == 4
+    @test ncoeffs == [2, 2, 4, 5]
     
 end
 
@@ -137,8 +138,8 @@ end
 
         predicted_degrees = discover_groebner_degrees(G)
 
-        gb = naive_new_generating_set(set)
-        coeffs = field_generators(gb)
+        gb = naive_groebner_ideal(set)
+        coeffs = obtain_generators(gb)
         true_degrees = [
             maximum([ AA.degree(f, var) for f in coeffs ])
             for var in AA.gens(coeff_ring)
@@ -152,7 +153,7 @@ end
 
 
 function test_groebner_inclusion(set, ismodular)
-    newset = new_generating_set(set, modular=ismodular)
+    newset = groebner_ideal(set, modular=ismodular)
     
     @test check_ideal_inclusion(newset, set)
 
@@ -179,8 +180,8 @@ end
     ]
 
     for set in [set1, set2]
-        rational_gb = new_generating_set(set, modular=false)
-        finite_gb = new_generating_set(set, modular=true)
+        rational_gb = groebner_ideal(set, modular=false)
+        finite_gb = groebner_ideal(set, modular=true)
         
         @test rational_gb == finite_gb
     end

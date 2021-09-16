@@ -1,5 +1,10 @@
 
 
+function unpackfrac(q)
+    numerator(q), denominator(q)
+end
+
+
 function add_one_variable(poly, newparent)
     R = parent(poly)
     base = base_ring(R)

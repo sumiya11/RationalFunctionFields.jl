@@ -1,6 +1,8 @@
-using .RationalFunctionFields: interpolate_rational_function, interpolate_multivariate_rational_function,
-random_linear_shift, decompose_by_degrees, interpolate_polynomial,
-generate_kronecker_points, backward_kronecker, decompose_by_good_degrees
+using .RationalFunctionFields: interpolate_rational_function,
+        interpolate_multivariate_rational_function, polynomial_reconstruction, 
+        random_linear_shift, decompose_by_degrees, interpolate_polynomial, 
+        generate_kronecker_points, backward_kronecker,
+        decompose_by_good_degrees, unpackfrac
 
 
 function test_rational_function_interpolation(f)
@@ -36,6 +38,41 @@ function test_rational_function_interpolation(f)
 
     @test degi == degf
 end
+
+
+@testset "Polynomial Reconstruction tests" begin
+    R, a = Nemo.PolynomialRing(Nemo.QQ, "a")
+
+    ms = [
+        (a - 2)*(a - 4)*(a + 5//3)*(a - 10//21)*(a - 1//8),
+        (a^2 + a + 1)*(a + 10)^3*(a - 1)*(a - 2)
+    ]
+    fs = [
+        a^2 + a + 1,
+        (a - 3)^2,
+        a,
+        R(1)
+    ]
+    
+    for f in fs
+        for m in ms
+            q = polynomial_reconstruction(f, m)
+            n, d = unpackfrac(q)   
+
+            @test mod(n, m) == mod(d*f, m)
+            @test AA.degree(n) + AA.degree(d) <= AA.degree(m)
+        end
+    end
+
+    #=
+    # should throw as long as the factor in f vanishes
+    f = (a - 2)*(a - 1)*(a - 4)
+    @test_throws DomainError polynomial_reconstruction(f, ms[1])
+    @test_throws DomainError polynomial_reconstruction(f, ms[2])
+    =#
+
+end
+
 
 #=
 @testset "Rational Interpolation tests" begin
@@ -175,6 +212,7 @@ end
 
 #################################################################
 
+#=
 @testset "Kronecker points generation tests" begin
     ground = Sing.GF(2^31 - 1)
     R, (a, b, c) = AA.PolynomialRing(ground, ["a", "b", "c"])
@@ -203,6 +241,7 @@ end
     end
 
 end
+=#
 
 #=
 @testset "Good Kronecker tests" begin
@@ -223,6 +262,7 @@ end
 end
 =#
 
+#=
 @testset "Kronecker backward substitution tests" begin
     FF = Sing.QQ
     R, (x1, x2, x3) = AA.PolynomialRing(FF, ["x1", "x2", "x3"])
@@ -254,7 +294,7 @@ end
         @test backward_kronecker(f, R, maxexp) == truef
     end
 end
-
+=#
 
 @testset "Polynomial interpolation tests" begin
     
@@ -312,9 +352,10 @@ end
     ]
 
     for case in test_cases
-        numpoints = 2 * (AA.degree(numerator(case)) + AA.degree(denominator(case)))
+        n, d = unpackfrac(case)
+        numpoints = 2 * (AA.degree(n) + AA.degree(d))
         xs = [rand(FF) for _ in 1:numpoints]
-        ys = [AA.evaluate(numerator(case), xval) // AA.evaluate(denominator(case), xval) for xval in xs]
+        ys = [AA.evaluate(n, xval) // AA.evaluate(d, xval) for xval in xs]
         ans = interpolate_rational_function(uniring, xs, ys)
         @test ans == case
     end
@@ -330,6 +371,10 @@ end
     @test ans == FF(1)
     
 end
+
+
+
+
 
 #=
 # for future

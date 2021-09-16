@@ -20,7 +20,6 @@ end
 # univariate
 # returns :: AbstractAlgebra.Generic.Poly
 function interpolate_polynomial(R, xs, ys)
-    
     f = sum(
         ys[i] * lagrange_interpolant(R, xs, i)
         for i in 1:length(xs)
@@ -28,6 +27,17 @@ function interpolate_polynomial(R, xs, ys)
 end
 
 
+"""
+    For given polynomial g and m computes the rational fraction r//t,
+    s.t. r//t approximates g modulo m 
+    
+        r == t*g (mod m)
+    
+    and
+        deg(r) + deg(t) <= deg(m)
+
+    Throws if ??? TODO
+"""
 function polynomial_reconstruction(g, m)
     # The function implements Algorithm 12.9 from
     #   "Modern Computer Algebra", second edition,
@@ -48,7 +58,6 @@ function polynomial_reconstruction(g, m)
 
     r, t = V[3], V[2]
 
-
     if gcd(r, t) == FF(1) && AbstractAlgebra.degree(t) <= n - k
         return r // t
     end
@@ -58,25 +67,29 @@ function polynomial_reconstruction(g, m)
     ))
 end
 
-# univariate
-# returns :: AbstractAlgebra.Generic.MPoly
+
+"""
+    Interpolates rational function in the given ring R with
+    the given interpolation points xs and ys by
+    interpolating as a polynomial first
+    and reconstructing into a polynomial fraction after
+"""
 function interpolate_rational_function(R, xs, ys)
     # The function implements algorithm derived from Corollary 5.20 of
     #   "Modern Computer Algebra", second edition,
     #   Joachim von zur Gathen, Jürgen Gerhard
 
     x = AbstractAlgebra.gen(R)
-
-    # g = interpolate_polynomial(R, xs, ys)
-   
     g = Nemo.interpolate(R, xs, ys)
 
+    # TODO: this computation can be done faster
     m = prod(x - xs[i] for i in 1:length(xs))
     
     polynomial_reconstruction(g, m)
 end
 
 
+# TODO: why is it still here?
 function interpolate_multivariate_rational_function(MR, R, xs, ys)
    
     f = interpolate_rational_function(R, xs, ys)
@@ -84,6 +97,9 @@ function interpolate_multivariate_rational_function(MR, R, xs, ys)
     f   
 end
 
+"""
+    Returns reversed vector of base-adic representation of n
+"""
 function decompose_by_degrees(n, base, len)
     powers = [base^(i-1) for i in 1:len]
     exps = zeros(Int, len)
@@ -94,6 +110,8 @@ function decompose_by_degrees(n, base, len)
     exps
 end
 
+
+# TODO : not used
 function random_linear_shift(ground_ring, n)
     functors = []
     inverses = []
@@ -115,6 +133,7 @@ end
     Given a callable functor f tries to find degrees of univariate polynomials
     A, B approximating f as a rational function f = A // B
 """
+# TODO: not used
 function predict_degrees(f)
     # staring from small amount of points..
     n = 8
@@ -143,10 +162,12 @@ function predict_degrees(f)
 end
 
 
+
 """
     Same as the function above, key difference is that here
     f returns an array of results on each evaluation
 """
+# TODO: not used
 function simultaneous_predict_degrees(f)
     # staring from small amount of points..
     n = 8
@@ -183,6 +204,10 @@ function simultaneous_predict_degrees(f)
 end
 
 
+"""
+    
+"""
+# TODO: not used
 function backward_kronecker(
                      f,
                      target_ring,

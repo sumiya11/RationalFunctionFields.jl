@@ -30,12 +30,14 @@ module RationalFunctionFields
     include("utils.jl")
     include("interpolation.jl")
     include("modular.jl")
+    include("ideals.jl")
     include("groebner.jl")
     # include("inclusion.jl")
-    include("main.jl")
-    include("structs.jl")
+    include("algorithms.jl")
+    include("RationalFunctionField.jl")
 
     export RationalFunctionField    
+    export simplify!, contains
 end
 
 

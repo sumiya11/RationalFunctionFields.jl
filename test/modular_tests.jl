@@ -7,7 +7,7 @@ using .RationalFunctionFields: modular_reduction, rational_reconstruction, CRT,
 @testset "reduction + reconstruction tests" begin
     modulo = 2^31 - 1
     
-    FF = Sing.GF(modulo)
+    FF = Sing.N_ZpField(modulo)
 
     xs  = [ Sing.QQ(rand(1:10000), rand(1:10000)) for _ in 1:10 ]
     xrs = modular_reduction(xs, FF)

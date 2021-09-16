@@ -73,8 +73,9 @@ function rational_reconstruction(f::Union{MPoly, gfp_mpoly, fmpz_mpoly}, m)
 end
 
 function rational_reconstruction(f::Frac, m)
-    rational_reconstruction(numerator(f), m) //
-        rational_reconstruction(denominator(f), m)
+    q1 = rational_reconstruction(numerator(f), m)
+    q2 = rational_reconstruction(denominator(f), m)
+    q1 // q2
 end
 
 function rational_reconstruction(A::Array, m)
@@ -150,8 +151,8 @@ end
 
 
 """
-    Looks cool
-    TODO
+    Reconstructs the ultimate Groebner basis with coefficients
+    obtained from applying CRT to the given bases coeffs and moduli 
 """
 function CRT_reconstruction(groebner_bases, moduli)
     onegb = first(groebner_bases)

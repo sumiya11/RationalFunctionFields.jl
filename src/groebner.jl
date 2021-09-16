@@ -71,7 +71,6 @@ function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
     # change
     lift = typeof(p[1]) <: Nemo.gfp_elem ? x -> x.data : x -> x
         
-    
     Is = [
             map_coefficients(c -> ground(lift(evaluate(c, p))), f)
             for f in G.underlying_ideal
@@ -83,7 +82,6 @@ function AbstractAlgebra.evaluate(G::GroebnerEvaluator, p)
             change_base_ring(base_ring(G.eval_ring), f, parent=G.eval_ring)
             for f in Is
     ]
-    # @info "" typeof(Is[1])
     
     ideal = Singular.Ideal(G.eval_ring, Is)
     # @info "I am gpoing to compute GB of $ideal"
